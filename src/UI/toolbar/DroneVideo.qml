@@ -1,65 +1,359 @@
 import QtQuick 6.8
 import QtQuick.Controls 6.8
 import QtMultimedia 6.8
+import QGroundControl.Controls
 
 Rectangle {
     id: videoRoot
     implicitWidth: 350
     implicitHeight: width * 0.75
-    color: "#1a1a1a" // 배경을 조금 더 어둡게 처리
+    color: "#1a1a1a"
     border.color: "#333"
     radius: 4
 
     property string deviceName: ""
     property var backend: null
+    readonly property color _controlBaseColor: "#66000000"
+    readonly property color _controlHoverColor: "#88353535"
+    readonly property color _controlPressedColor: "#AA2C7BE5"
+    readonly property color _controlBorderColor: "#99ffffff"
+    readonly property color _controlTextColor: "#F2FFFFFF"
+    readonly property real _directionButtonSize: 32
+    readonly property int _rightControlCount: 7
+    readonly property real _rightControlSpacing: 6
+    readonly property real _rightControlMargin: 8
+    readonly property real _rightControlButtonSize: Math.max(22, Math.min(34,
+        (videoOutput.height - (_rightControlMargin * 2) - (_rightControlSpacing * (_rightControlCount - 1))) / _rightControlCount))
 
     readonly property string rtspSource: (backend && backend.rtspUrl) ?
                                               backend.rtspUrl :
                                               "rtsp://127.0.0.1:8554/live"
 
-    // 1. 영상 출력 레이어 (가장 아래)
     VideoOutput {
         id: videoOutput
         anchors.fill: parent
         anchors.margins: 2
         fillMode: VideoOutput.PreserveAspectFit
 
-        // 영상이 없을 때만 보이는 검은 화면
         Rectangle {
             anchors.fill: parent
             color: "black"
             visible: mediaPlayer.mediaStatus < MediaPlayer.BufferedMedia
         }
+
+        Item {
+            id: cameraControls
+            anchors.fill: parent
+            z: 20
+
+            // 우측 세로 아이콘 버튼 레일
+            Item {
+                id: rightControlRail
+                width: videoRoot._rightControlButtonSize + 6
+                height: Math.min(parent.height - (videoRoot._rightControlMargin * 2),
+                                 (videoRoot._rightControlButtonSize * videoRoot._rightControlCount) +
+                                 (videoRoot._rightControlSpacing * (videoRoot._rightControlCount - 1)))
+                anchors.right: parent.right
+                anchors.verticalCenter: parent.verticalCenter
+                anchors.rightMargin: videoRoot._rightControlMargin
+                z: 21
+
+                Column {
+                    anchors.centerIn: parent
+                    spacing: videoRoot._rightControlSpacing
+
+                    RoundButton {
+                        width: videoRoot._rightControlButtonSize
+                        height: videoRoot._rightControlButtonSize
+                        icon.source: "qrc:/qmlimages/crossHair.svg"
+                        icon.color: "white"
+                        icon.width: width * 0.58
+                        icon.height: height * 0.58
+                        display: AbstractButton.IconOnly
+                        background: Rectangle {
+                            radius: width / 2
+                            color: parent.pressed ? videoRoot._controlPressedColor
+                                                  : (parent.hovered ? videoRoot._controlHoverColor : videoRoot._controlBaseColor)
+                            border.color: videoRoot._controlBorderColor
+                            border.width: 1
+                        }
+                    }
+
+                    RoundButton {
+                        width: videoRoot._rightControlButtonSize
+                        height: videoRoot._rightControlButtonSize
+                        icon.source: "qrc:/qmlimages/ZoomPlus.svg"
+                        icon.color: "white"
+                        icon.width: width * 0.58
+                        icon.height: height * 0.58
+                        display: AbstractButton.IconOnly
+                        background: Rectangle {
+                            radius: width / 2
+                            color: parent.pressed ? videoRoot._controlPressedColor
+                                                  : (parent.hovered ? videoRoot._controlHoverColor : videoRoot._controlBaseColor)
+                            border.color: videoRoot._controlBorderColor
+                            border.width: 1
+                        }
+                    }
+
+                    RoundButton {
+                        width: videoRoot._rightControlButtonSize
+                        height: videoRoot._rightControlButtonSize
+                        icon.source: "qrc:/qmlimages/ZoomMinus.svg"
+                        icon.color: "white"
+                        icon.width: width * 0.58
+                        icon.height: height * 0.58
+                        display: AbstractButton.IconOnly
+                        background: Rectangle {
+                            radius: width / 2
+                            color: parent.pressed ? videoRoot._controlPressedColor
+                                                  : (parent.hovered ? videoRoot._controlHoverColor : videoRoot._controlBaseColor)
+                            border.color: videoRoot._controlBorderColor
+                            border.width: 1
+                        }
+                    }
+
+                    RoundButton {
+                        width: videoRoot._rightControlButtonSize
+                        height: videoRoot._rightControlButtonSize
+                        icon.source: "qrc:/qmlimages/camera_video.svg"
+                        icon.color: "white"
+                        icon.width: width * 0.58
+                        icon.height: height * 0.58
+                        display: AbstractButton.IconOnly
+                        background: Rectangle {
+                            radius: width / 2
+                            color: parent.pressed ? videoRoot._controlPressedColor
+                                                  : (parent.hovered ? videoRoot._controlHoverColor : videoRoot._controlBaseColor)
+                            border.color: videoRoot._controlBorderColor
+                            border.width: 1
+                        }
+                    }
+
+                    RoundButton {
+                        width: videoRoot._rightControlButtonSize
+                        height: videoRoot._rightControlButtonSize
+                        icon.source: "qrc:/qmlimages/camera_photo.svg"
+                        icon.color: "white"
+                        icon.width: width * 0.58
+                        icon.height: height * 0.58
+                        display: AbstractButton.IconOnly
+                        background: Rectangle {
+                            radius: width / 2
+                            color: parent.pressed ? videoRoot._controlPressedColor
+                                                  : (parent.hovered ? videoRoot._controlHoverColor : videoRoot._controlBaseColor)
+                            border.color: videoRoot._controlBorderColor
+                            border.width: 1
+                        }
+                    }
+
+                    RoundButton {
+                        width: videoRoot._rightControlButtonSize
+                        height: videoRoot._rightControlButtonSize
+                        icon.source: "qrc:/qmlimages/PaperPlane.svg"
+                        icon.color: "white"
+                        icon.width: width * 0.58
+                        icon.height: height * 0.58
+                        display: AbstractButton.IconOnly
+                        background: Rectangle {
+                            radius: width / 2
+                            color: parent.pressed ? videoRoot._controlPressedColor
+                                                  : (parent.hovered ? videoRoot._controlHoverColor : videoRoot._controlBaseColor)
+                            border.color: videoRoot._controlBorderColor
+                            border.width: 1
+                        }
+                    }
+
+                    RoundButton {
+                        id: streamingSettingsButton
+                        width: videoRoot._rightControlButtonSize
+                        height: videoRoot._rightControlButtonSize
+                        icon.source: "qrc:/qmlimages/Gears.svg"
+                        icon.color: "white"
+                        icon.width: width * 0.58
+                        icon.height: height * 0.58
+                        display: AbstractButton.IconOnly
+                        onClicked: streamingSettingsPopup.open()
+                        background: Rectangle {
+                            radius: width / 2
+                            color: parent.pressed ? videoRoot._controlPressedColor
+                                                  : (parent.hovered ? videoRoot._controlHoverColor : videoRoot._controlBaseColor)
+                            border.color: videoRoot._controlBorderColor
+                            border.width: 1
+                        }
+                    }
+                }
+            }
+
+            Item {
+                id: gimbalPad
+                anchors.fill: parent
+
+                RoundButton {
+                    id: gimbalUp
+                    width: videoRoot._directionButtonSize; height: videoRoot._directionButtonSize
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    anchors.verticalCenter: parent.verticalCenter
+                    anchors.verticalCenterOffset: -parent.height * 0.3
+                    text: "▲"
+                    background: Rectangle {
+                        anchors.fill: parent
+                        color: "transparent"
+                        border.width: 0
+                        radius: 0
+                    }
+                    contentItem: Text {
+                        text: gimbalUp.text
+                        anchors.centerIn: parent
+                        color: (gimbalUp.pressed || gimbalUp.down) ? "#cccccc" : "white"
+                        font.pixelSize: 14
+                    }
+                    scale: pressed ? 0.92 : 1.0
+                    Behavior on scale { NumberAnimation { duration: 90 } }
+                }
+
+                RoundButton {
+                    id: gimbalLeft
+                    width: videoRoot._directionButtonSize; height: videoRoot._directionButtonSize
+                    anchors.left: parent.left
+                    anchors.leftMargin: parent.width * 0.3
+                    anchors.verticalCenter: parent.verticalCenter
+
+                    text: "◀"
+                    background: Rectangle {
+                        anchors.fill: parent
+                        color: "transparent"
+                        border.width: 0
+                        radius: 0
+                    }
+                    contentItem: Text {
+                        text: gimbalLeft.text
+                        anchors.centerIn: parent
+                        color: (gimbalLeft.pressed || gimbalLeft.down) ? "#cccccc" : "white"
+                        font.pixelSize: 14
+                    }
+                    scale: pressed ? 0.92 : 1.0
+                    Behavior on scale { NumberAnimation { duration: 90 } }
+                }
+
+                RoundButton {
+                    id: gimbalRight
+                    width: videoRoot._directionButtonSize; height: videoRoot._directionButtonSize
+                    anchors.right: parent.right
+                    anchors.verticalCenter: parent.verticalCenter
+                    anchors.rightMargin: parent.width * 0.3
+                    text: "▶"
+                    background: Rectangle {
+                        anchors.fill: parent
+                        color: "transparent"
+                        border.width: 0
+                        radius: 0
+                    }
+                    contentItem: Text {
+                        text: gimbalRight.text
+                        anchors.centerIn: parent
+                        color: (gimbalRight.pressed || gimbalRight.down) ? "#cccccc" : "white"
+                        font.pixelSize: 14
+                    }
+                    scale: pressed ? 0.92 : 1.0
+                    Behavior on scale { NumberAnimation { duration: 90 } }
+                }
+
+                RoundButton {
+                    id: gimbalDown
+                    width: videoRoot._directionButtonSize;
+                    height: videoRoot._directionButtonSize
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    anchors.verticalCenter: parent.verticalCenter
+                    anchors.verticalCenterOffset: +parent.height * 0.3
+                    text: "▼"
+                    background: Rectangle {
+                        anchors.fill: parent
+                        color: "transparent"
+                        border.width: 0
+                        radius: 0
+                    }
+                    contentItem: Text {
+                        text: gimbalDown.text
+                        anchors.centerIn: parent
+                        color: (gimbalDown.pressed || gimbalDown.down) ? "#cccccc" : "white"
+                        font.pixelSize: 14
+                    }
+                    scale: pressed ? 0.92 : 1.0
+                    Behavior on scale { NumberAnimation { duration: 90 } }
+                }
+            }
+        }
     }
 
-    // 2. 상태 표시 레이어 (영상 위에 표시)
-    Column {
+    Popup {
+        id: streamingSettingsPopup
+        parent: videoRoot
+        modal: true
+        focus: true
+        closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutsideParent
+        width: 190
+        x: Math.max(8, videoOutput.x + rightControlRail.x - width - 8)
+        y: Math.max(8, videoOutput.y + rightControlRail.y)
+        padding: 10
+        background: Rectangle {
+            radius: 8
+            color: "#CC202020"
+            border.width: 1
+            border.color: "#66ffffff"
+        }
+
+        contentItem: Column {
+            spacing: 8
+
+            Label {
+                text: qsTr("스트리밍 설정")
+                color: "white"
+                font.pixelSize: 13
+            }
+
+            ComboBox {
+                width: parent.width
+                model: ["720p", "1080p"]
+            }
+
+            ComboBox {
+                width: parent.width
+                model: ["24 FPS", "30 FPS", "60 FPS"]
+            }
+
+            ComboBox {
+                width: parent.width
+                model: ["2 Mbps", "4 Mbps", "8 Mbps"]
+            }
+        }
+    }
+
+    readonly property bool _showConnectingState: mediaPlayer.mediaStatus !== MediaPlayer.BufferedMedia &&
+                                                 mediaPlayer.mediaStatus !== MediaPlayer.LoadedMedia
+
+    BusyIndicator {
         anchors.centerIn: parent
-        spacing: 12
-        // 로딩 중이거나 에러 상태일 때만 표시
-        visible: mediaPlayer.mediaStatus !== MediaPlayer.BufferedMedia &&
-                 mediaPlayer.mediaStatus !== MediaPlayer.LoadedMedia
-
-        BusyIndicator {
-            anchors.horizontalCenter: parent.horizontalCenter
-            running: parent.visible
-        }
-
-        Text {
-            // deviceName이 비어있으면 "카메라"로 표시
-            text: (deviceName === "" ? "카메라" : deviceName) + " 연결 확인 중..."
-            color: "#aaa"
-            font.pixelSize: 11
-            anchors.horizontalCenter: parent.horizontalCenter
-        }
+        visible: videoRoot._showConnectingState
+        running: visible
     }
 
-    // 3. 미디어 엔진
+    Text {
+        anchors.left: parent.left
+        anchors.top: parent.top
+        anchors.leftMargin: 8
+        anchors.topMargin: 8
+        visible: videoRoot._showConnectingState
+        text: (deviceName === "" ? "카메라" : deviceName) + " 연결 확인 중..."
+        color: "#aaa"
+        font.pixelSize: 11
+    }
+
     MediaPlayer {
         id: mediaPlayer
         videoOutput: videoOutput
         source: videoRoot.rtspSource
-        audioOutput: AudioOutput { muted: true } // 드론 영상은 보통 소음이라 뮤트 필수
+        audioOutput: AudioOutput { muted: true }
 
         onMediaStatusChanged: {
             if (mediaStatus === MediaPlayer.InvalidMedia || mediaStatus === MediaPlayer.NoMedia)
@@ -69,7 +363,6 @@ Rectangle {
         onErrorOccurred: (error, errorString) => reconnectTimer.start()
     }
 
-    // 재연결 타이머 (이름 통일)
     Timer {
         id: reconnectTimer
         interval: 3000

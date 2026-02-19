@@ -435,7 +435,6 @@ ApplicationWindow {
                     id: customFlyView
                     Layout.fillHeight: true
                     Layout.fillWidth: !mainWindow._planViewShown
-                    // Custom Plan 뷰: 펼침 시 원하는 너비 직접 지정( leftPanelWidth 쓰면 접힌 상태에서 0→순환으로 펼쳐도 공간 안 생김)
                     Layout.preferredWidth: mainWindow._planViewShown
                                         ? (mainWindow._customPlanViewShown && customFlyView.leftPanelVisible ? customFlyView.leftPanelWidth : 0)
                                         : 0

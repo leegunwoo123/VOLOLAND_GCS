@@ -141,20 +141,13 @@ Item {
 
         ColumnLayout {
             anchors.fill: parent
-<<<<<<< HEAD
-=======
             anchors.centerIn: parent
->>>>>>> f9dfdbd69 (commit (clean))
             anchors.topMargin: 10
             anchors.bottomMargin: 10
             spacing: 10
             clip: true
-
-<<<<<<< HEAD
-            // 상단 선택바: 드론 정보와 스테이션 정보를 동시에 표시
-=======
+/*
             // 상단 선택바 (DroneList와 동일 구조)
->>>>>>> f9dfdbd69 (commit (clean))
             Rectangle {
                 id: selectedBar_border
                 Layout.alignment: Qt.AlignHCenter | Qt.AlignTop
@@ -168,20 +161,6 @@ Item {
 
                 Rectangle {
                     id: selectedBar
-<<<<<<< HEAD
-                    anchors.fill: parent
-                    color: "#111"
-                    
-                    ColumnLayout {
-                        anchors.fill: parent
-                        anchors.leftMargin: 12
-                        spacing: 0
-                        Text {
-                            color: "white"
-                            font.pixelSize: 12
-                            text: "선택된 장비: " + (stationBackground.selectedStation === "" ? "없음" : stationBackground.selectedStation)
-                        }
-=======
                     anchors.left: parent.left
                     anchors.right: parent.right
                     height: 28
@@ -198,23 +177,17 @@ Item {
                         text: stationBackground.selectedStation === ""
                               ? "선택된 장비: 없음"
                               : ("선택된 장비: " + stationBackground.selectedStation)
->>>>>>> f9dfdbd69 (commit (clean))
                     }
                 }
-            }
 
+            }
+*/
             RowLayout {
                 Layout.fillWidth: true
                 Layout.leftMargin: 10
                 Layout.rightMargin: 10
                 spacing: 10
-<<<<<<< HEAD
                 Item { Layout.fillWidth: true }
-=======
-
-                Item { Layout.fillWidth: true }
-
->>>>>>> f9dfdbd69 (commit (clean))
                 TextField {
                     id: stationSearchBox
                     placeholderText: "스테이션 검색..."
@@ -241,28 +214,19 @@ Item {
 
             Rectangle {
                 id: stationScroll
-<<<<<<< HEAD
-                Layout.fillWidth: true
-                Layout.fillHeight: true
-                color: "transparent"
-=======
                 Layout.preferredWidth: parent.width - 10
                 Layout.fillWidth: true
                 Layout.fillHeight: true
                 Layout.alignment: Qt.AlignHCenter
                 color: "transparent"
                 radius: 4
->>>>>>> f9dfdbd69 (commit (clean))
                 clip: true
 
                 ScrollView {
                     id: viewContainer
                     anchors.fill: parent
                     anchors.margins: 10
-<<<<<<< HEAD
-=======
                     clip: true
->>>>>>> f9dfdbd69 (commit (clean))
 
                     ListView {
                         id: listView
@@ -283,60 +247,16 @@ Item {
                                 id: bgRect
                                 anchors.fill: parent
                                 anchors.margins: 2
-<<<<<<< HEAD
-                                // depth에 따른 배경색 분기 (DroneList 스타일)
-                                color: nodeType === "company" ? "#252525" : 
-                                       nodeType === "parent department" ? "#202020" :
-                                       nodeType === "department" ? "#1a1a1a" : "#111111"
-                                
-                                border.color: (nodeType === "station" && stationBackground.selectedStation === stationName) ? "#00BFFF" : "#333"
-                                border.width: (nodeType === "station" && stationBackground.selectedStation === stationName) ? 2 : 1
-=======
                                 z: 0
                                 color: nodeType === "company"
                                        ? "#252525"
                                        : (nodeType.includes("department") ? "#1e1e1e" : "#151515")
                                 border.color: (nodeType === "station" && stationBackground.selectedStation === stationName) ? "#00BFFF" : "#333"
                                 border.width: (nodeType === "station" && stationBackground.selectedStation === stationName) ? 3 : 1
->>>>>>> f9dfdbd69 (commit (clean))
                                 radius: 4
                             }
 
                             RowLayout {
-<<<<<<< HEAD
-                                anchors.fill: bgRect
-                                anchors.leftMargin: 10 + (depth * 15)
-                                spacing: 10
-
-                                Text {
-                                    text: isExpanded ? "▼" : "▶"
-                                    color: "white"
-                                    font.pixelSize: 10
-                                    visible: nodeType !== "station"
-                                }
-
-                                Text {
-                                    text: nodeType === "station" ? "📡" : (nodeType === "company" ? "🏢" : "📁")
-                                    font.pixelSize: 14
-                                }
-
-                                Text {
-                                    // 중요: depth 0, 1, 2는 groupName을, 3은 stationName을 출력
-                                    text: nodeType === "station" ? stationName : groupName
-                                    Layout.fillWidth: true
-                                    color: nodeType === "company" ? "#00BFFF" : (nodeType.includes("department") ? "#FFD700" : "white")
-                                    font.bold: nodeType !== "station"
-                                    font.pixelSize: 13
-                                    elide: Text.ElideRight
-                                }
-
-                                Text {
-                                    visible: nodeType === "station"
-                                    text: status
-                                    color: status === "ONLINE" ? "#44ff44" : "#ff4444"
-                                    font.pixelSize: 11
-                                    Layout.rightMargin: 10
-=======
                                 id: contentLayout
                                 anchors.fill: bgRect
                                 anchors.leftMargin: 10
@@ -396,7 +316,6 @@ Item {
                                         color: status === "ONLINE" ? "#44ff44" : "#ff4444"
                                         font.pixelSize: 11
                                     }
->>>>>>> f9dfdbd69 (commit (clean))
                                 }
                             }
 

@@ -123,9 +123,7 @@ Item {
                     target: QGroundControl.videoManager
                     function onImageFileChanged(filename) {
                         videoContent.grabToImage(function(result) {
-                            if (!result.saveToFile(filename)) {
-                                console.error('Error capturing video frame');
-                            }
+                            result.saveToFile(filename)
                         });
                     }
                 }

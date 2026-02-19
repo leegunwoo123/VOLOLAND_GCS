@@ -51,7 +51,6 @@ Rectangle {
             color: "#aaa"
             font.pixelSize: 11
             anchors.horizontalCenter: parent.horizontalCenter
-            anchors.verticalCenter: parent.verticalCenter
         }
     }
 
@@ -63,17 +62,11 @@ Rectangle {
         audioOutput: AudioOutput { muted: true } // 드론 영상은 보통 소음이라 뮤트 필수
 
         onMediaStatusChanged: {
-            console.log("Current Status:", mediaStatus)
-            // Invalid(7) 혹은 연결 끊김 시 재시도
-            if (mediaStatus === MediaPlayer.InvalidMedia || mediaStatus === MediaPlayer.NoMedia) {
+            if (mediaStatus === MediaPlayer.InvalidMedia || mediaStatus === MediaPlayer.NoMedia)
                 reconnectTimer.restart()
-            }
         }
 
-        onErrorOccurred: (error, errorString) => {
-            console.log("Connection Error:", errorString)
-            reconnectTimer.start()
-        }
+        onErrorOccurred: (error, errorString) => reconnectTimer.start()
     }
 
     // 재연결 타이머 (이름 통일)

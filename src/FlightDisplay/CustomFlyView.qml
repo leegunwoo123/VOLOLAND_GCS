@@ -1,12 +1,7 @@
 import QtQuick
 import QtQuick.Controls
-import QtQuick.Dialogs
 import QtQuick.Layouts
-
-import QtLocation
-import QtPositioning
 import QtQuick.Window
-import QtQml.Models
 
 import QGroundControl
 import QGroundControl.Controllers
@@ -18,39 +13,12 @@ import QGroundControl.Palette
 import QGroundControl.ScreenTools
 import QGroundControl.Vehicle
 import QGroundControl.Toolbar
-<<<<<<< HEAD
-
 // 3D Viewer modules
-=======
-import QGroundControl.Palette
-import QGroundControl.ScreenTools
->>>>>>> f9dfdbd69 (commit (clean))
 import Viewer3D
 
 RowLayout {
     id: root
-<<<<<<< HEAD
-    // 부모(MainWindow RowLayout)가 Layout.fillWidth/fillHeight 등으로 크기 지정 → anchors 사용 시 경고/미정의 동작
-    spacing: 0
-
-    /// Plan 뷰가 켜져 있을 때 true. 이때 좌측 droneStatus만 표시하고 중앙/우측은 숨김
-    property bool planViewActive: false
-    /// 좌측 DroneList에서 선택한 기체명 (CustomPlanView 등에서 deviceName 바인딩용)
-    readonly property string selectedDeviceName: droneList.selectedDevice
-
-    readonly property real sidebarWidth: mainWindow.width * 0.20
-    readonly property real sidebarMaxWidth: 350 * 1.25
-
-    // 좌측: 드론 상태 (빈 영역 드래그 시 맵으로 이벤트 전달 방지)
-    Item {
-        Layout.preferredWidth: Math.min(root.sidebarWidth, root.sidebarMaxWidth)
-        Layout.minimumWidth: 200
-        Layout.maximumWidth: root.sidebarMaxWidth
-        Layout.fillHeight: true
-        Layout.leftMargin: 10
-        Layout.topMargin: 10
-        Layout.bottomMargin: 10
-=======
+    // 부모가 Layout로 크기 지정되므로 anchors 사용 시 경고/미정의 동작 가능
     spacing: 0
 
     property bool planViewActive: false
@@ -58,8 +26,10 @@ RowLayout {
     readonly property var planController: planMasterController
     readonly property var guidedController: null
     readonly property string selectedDeviceName: droneList.selectedDevice
-    /// MainWindow/CustomPlanView에서 좌측 패널 너비 동기화용
-    readonly property real leftPanelWidth: leftPanelItem.width
+    /// 좌측 droneStatus 단일 소스 폭(두 모드 공통)
+    readonly property real droneStatusTargetWidth: Math.round(Math.min(sidebarWidth, sidebarMaxWidth))
+    /// MainWindow/CustomPlanView에서 참조하는 좌측 패널 폭(펼침 상태 기준)
+    readonly property real leftPanelWidth: leftPanelVisible ? droneStatusTargetWidth : 0
     readonly property real sidebarWidth: mainWindow.width * 0.20
     readonly property real sidebarMaxWidth: 350 * 1.25
 
@@ -67,28 +37,24 @@ RowLayout {
     property bool _cursorOverLeftPanel: leftPanelHoverArea.containsMouse
     property bool _cursorOverRightPanel: rightPanelHoverArea.containsMouse
     property bool rightPanelStationVisible: true
+    property bool leftPanelVisible: true
 
+    readonly property real _panelHorizontalMargins: 4
+
+    // 좌측: 드론 상태 (빈 영역 드래그 시 맵으로 이벤트 전달 방지)
     Item {
         id: leftPanelItem
-        // root(=CustomFlyView)가 너비 0으로 접힐 때 레이아웃에서 완전히 제외되도록 방어
         visible: root.width > 0
-        Layout.preferredWidth: root.width > 0 ? Math.min(root.sidebarWidth, root.sidebarMaxWidth) : 0
-        Layout.minimumWidth: root.width > 0 ? 200 : 0
-        Layout.maximumWidth: root.width > 0 ? root.sidebarMaxWidth : 0
+        Layout.fillWidth: false
+        // 레이아웃에서 실제 점유폭(item width + 좌우 마진)이 항상 droneStatusTargetWidth가 되도록 맞춘다.
+        Layout.preferredWidth: root.width > 0 ? (root.leftPanelVisible ? Math.max(0, root.droneStatusTargetWidth - root._panelHorizontalMargins) : 0) : 0
+        Layout.minimumWidth: root.width > 0 ? (root.leftPanelVisible ? Math.max(0, 200 - root._panelHorizontalMargins) : 0) : 0
+        Layout.maximumWidth: root.width > 0 ? (root.leftPanelVisible ? Math.max(0, root.sidebarMaxWidth - root._panelHorizontalMargins) : 0) : 0
         Layout.fillHeight: root.width > 0
         Layout.leftMargin: 2
         Layout.topMargin: 2
         Layout.bottomMargin: 2
         Layout.rightMargin: 2
-
-        // Fly / CustomPlan 전환 시 좌측 패널 실제 폭 확인용 로그
-        onWidthChanged: {
-            console.log("[CustomFlyView] leftPanelItem.width =", width,
-                        " planViewActive =", root.planViewActive,
-                        " _planViewShown =", mainWindow._planViewShown,
-                        " _customPlanViewShown =", mainWindow._customPlanViewShown)
-        }
->>>>>>> f9dfdbd69 (commit (clean))
 
         MouseArea {
             anchors.fill: parent
@@ -96,130 +62,43 @@ RowLayout {
             acceptedButtons: Qt.AllButtons
             onPressed: (mouse) => { mouse.accepted = true }
             onReleased: (mouse) => { mouse.accepted = true }
-<<<<<<< HEAD
-=======
             onWheel: (wheel) => { wheel.accepted = true }
->>>>>>> f9dfdbd69 (commit (clean))
+        }
+
+        // 접기/펼치기 버튼: 패널 우측 끝 상단 (맵 쪽 가장자리, 우측 패널 토글과 대칭)
+        Rectangle {
+            id: droneStatusToggleButton
+            anchors.left: parent.left
+            anchors.top: parent.top
+            anchors.rightMargin: 4
+            anchors.topMargin: 4
+            width: 20
+            height: 20
+            radius: width / 2
+            color: root.leftPanelVisible ? "#252525" : "transparent"
+            z: 1000
+
+            QGCMouseArea {
+                anchors.fill: parent
+                onClicked: {
+                    root.leftPanelVisible = !root.leftPanelVisible
+                }
+            }
+
+            Text {
+                anchors.centerIn: parent
+                text: root.leftPanelVisible ? "◀" : "▶"
+                color: "#ffffff"
+                font.pixelSize: 12
+            }
         }
 
         ColumnLayout {
             id: droneStatus
             anchors.fill: parent
+            visible: root.leftPanelVisible
             spacing: 2
 
-<<<<<<< HEAD
-        DroneList {
-            id:                     droneList
-            Layout.fillWidth: true
-            Layout.fillHeight: true
-            Layout.minimumWidth: 350
-            Layout.minimumHeight: 300
-            // fillHeight를 사용할 때는 minimumHeight를 제거하거나 낮춰야
-            // 다른 컴포넌트들이 필요한 공간을 먼저 확보한 후 남은 공간을 차지하도록 함
-            // Layout.preferredWidth: droneStatus.width
-            Layout.preferredWidth: parent.width
-            // Layout.preferredHeight: droneStatus.height
-            // ColumnLayout에서 아래 위젯들과 공간을 나눠야 하므로, 리스트가 전체 높이를 선점하지 않도록 제거
-            Layout.maximumWidth: 350 * 1.25
-        
-            utmspSendActTrigger:    _utmspSendActTrigger
-        }
-
-        CustomHUDWidget{
-            id: customHUDWidget
-            Layout.fillWidth: true
-            // preferredWidth는 숫자여야 함 (Item이 아니라 width)
-            // Layout.preferredWidth: droneStatus.width
-            Layout.preferredWidth: droneStatus.width
-            // 다른 카드들과 동일하게 너무 커지지 않도록 캡
-            Layout.maximumWidth: 350 * 1.25
-            // 높이는 CustomHUDWidget.qml 내부에서 설정됨 (100으로 고정)
-            // 여기서 중복 설정하지 않음
-
-        }
-
-        DroneVideo{
-    
-            id: droneVideo
-            Layout.fillWidth: true
-            //Layout.fillHeight: true
-            Layout.minimumWidth: 350
-            Layout.minimumHeight: 200
-            // Layout.preferredWidth: droneStatus.width
-            Layout.preferredWidth: droneStatus.width
-            //Layout.preferredHeight: droneVideo.width * 0.75
-            Layout.preferredHeight: Layout.preferredWidth * 0.75
-            Layout.maximumWidth: 350 * 1.25
-            Layout.maximumHeight: 200 * 1.25
-        
-            deviceName: droneList.selectedDevice
-
-            //visible: droneList.selectedDevice !== ""
-        }
-
-        DroneStatusMessage{
-
-            id: droneStatusMessage
-            Layout.fillWidth: true
-            Layout.minimumHeight: 100
-            // Layout.minimumWidth: droneStatus.width
-            Layout.minimumWidth: 350
-            // Layout.preferredWidth: droneStatus.width
-            Layout.preferredWidth: droneStatus.width
-            // Layout.preferredHeight: droneStatus.width * 0.35
-            Layout.preferredHeight: Layout.preferredWidth * 0.35
-            Layout.maximumWidth: 350 * 1.25
-            Layout.maximumHeight: 100 * 1.25
-    
-        
-            deviceName: droneList.selectedDevice
-
-            //visible: droneList.selectedDevice !== ""
-        }
-
-        //Item { Layout.fillHeight: true }
-
-        DroneControlPanel{
-            id: controlPanel
-            Layout.fillWidth: true
-            Layout.minimumHeight: droneControlButton.implicitHeight + 20
-            // Layout.minimumWidth: droneStatus.width
-            Layout.minimumWidth: 350
-            // Layout.preferredWidth: droneStatus.width
-            Layout.preferredWidth: droneStatus.width
-            Layout.preferredHeight: droneControlButton.implicitHeight + 20
-            Layout.maximumWidth: 350 * 1.25
-            Layout.maximumHeight: 300 * 1.25
-            Layout.alignment: Qt.AlignBottom
-
-            deviceName: droneList.selectedDevice
-            backend: backendClient
-
-            //visible: droneList.selectedDevice !== ""
-        }
-        }
-    }
-
-    // 중앙: 지도/메인 콘텐츠 영역 (좌·우 사이드바가 붙지 않도록 공간 차지). Plan 뷰 활성 시 숨김
-    Item {
-        Layout.fillWidth: true
-        Layout.fillHeight: true
-        visible: !root.planViewActive
-    }
-
-    // 우측: 스테이션 상태 (버튼 포함). Plan 뷰 활성 시 숨김
-    Item {
-        id: stationStatusContainer
-        visible: !root.planViewActive
-        Layout.preferredWidth: stationStatusVisible ? Math.min(root.sidebarWidth, root.sidebarMaxWidth) : 40
-        Layout.minimumWidth: 40 // 버튼(20) + 좌측마진(10) + 여유(10) = 항상 버튼이 보이도록
-        Layout.maximumWidth: stationStatusVisible ? root.sidebarMaxWidth : 40
-        Layout.fillHeight: true
-        
-        property bool stationStatusVisible: true
-
-        // 빈 영역 드래그 시 맵으로 이벤트 전달 방지
-=======
             DroneList {
                 id:                     droneList
                 Layout.fillWidth: true
@@ -341,27 +220,50 @@ RowLayout {
             id: viewer3DWindow
             anchors.fill: parent
         }
-
-        Item {
-            id: stationToggleButton
+        // 접었을 때만 맵 좌측에 좌측 패널 펼치기 버튼 (배경 없음)
+        QGCMouseArea {
+            anchors.left: parent.left
+            anchors.top: parent.top
+            anchors.leftMargin: 4
+            anchors.topMargin: 4
+            width: 24
+            height: 24
+            visible: !root.planViewActive && !root.leftPanelVisible
+            z: 1000
+            onClicked: root.leftPanelVisible = true
+            Item {
+                anchors.centerIn: parent
+                width: 24
+                height: 24
+                Text {
+                    anchors.centerIn: parent
+                    text: "▶"
+                    color: "#ffffff"
+                    font.pixelSize: 14
+                }
+            }
+        }
+        // 접었을 때만 맵 우측에 우측 패널 펼치기 버튼 (배경 없음)
+        QGCMouseArea {
             anchors.right: parent.right
             anchors.top: parent.top
-            anchors.rightMargin: 2
-            anchors.topMargin: 2
-            width: 20
-            height: 20
+            anchors.rightMargin: 4
+            anchors.topMargin: 4
+            width: 24
+            height: 24
+            visible: !root.planViewActive && !root.rightPanelStationVisible
             z: 1000
-
-            MouseArea {
-                anchors.fill: parent
-                onClicked: root.rightPanelStationVisible = !root.rightPanelStationVisible
-            }
-
-            Text {
+            onClicked: root.rightPanelStationVisible = true
+            Item {
                 anchors.centerIn: parent
-                text: root.rightPanelStationVisible ? "▶" : "◀"
-                color: "#ffffff"
-                font.pixelSize: 12
+                width: 24
+                height: 24
+                Text {
+                    anchors.centerIn: parent
+                    text: "◀"
+                    color: "#ffffff"
+                    font.pixelSize: 14
+                }
             }
         }
 
@@ -443,6 +345,7 @@ RowLayout {
     Item {
         id: rightPanelItem
         visible: !root.planViewActive
+        // 접었을 때는 너비 0 (배경 없음), 펼치기 버튼은 맵 위에 표시
         Layout.preferredWidth: root.planViewActive ? 0 : (root.rightPanelStationVisible ? Math.min(root.sidebarWidth, root.sidebarMaxWidth) : 0)
         Layout.minimumWidth: root.planViewActive ? 0 : (root.rightPanelStationVisible ? 200 : 0)
         Layout.maximumWidth: root.planViewActive ? 0 : (root.rightPanelStationVisible ? root.sidebarMaxWidth : 0)
@@ -452,190 +355,102 @@ RowLayout {
         Layout.bottomMargin: 2
         Layout.rightMargin: 2
 
->>>>>>> f9dfdbd69 (commit (clean))
         MouseArea {
             anchors.fill: parent
             z: -1
             acceptedButtons: Qt.AllButtons
             onPressed: (mouse) => { mouse.accepted = true }
             onReleased: (mouse) => { mouse.accepted = true }
-<<<<<<< HEAD
+            onWheel: (wheel) => { wheel.accepted = true }
         }
 
-        // 토글 버튼 (항상 보임)
+        // 접기/펼치기 버튼: 패널 좌측 끝 상단에 고정 (접었을 때도 스트립 안에 있음)
         Rectangle {
-            id: stationToggleButton
+            id: stationStatusToggleButton
             anchors.left: parent.left
             anchors.top: parent.top
-            anchors.leftMargin: 10
-            anchors.topMargin: 10
+            anchors.leftMargin: 4
+            anchors.topMargin: 4
             width: 20
             height: 20
             radius: width / 2
-            color: "#252525"
-            z: 1000 // 항상 위에 표시
-            
+            color: root.rightPanelStationVisible ? "#252525" : "transparent"
+            z: 1000
+
             QGCMouseArea {
                 anchors.fill: parent
                 onClicked: {
-                    stationStatusContainer.stationStatusVisible = !stationStatusContainer.stationStatusVisible
+                    root.rightPanelStationVisible = !root.rightPanelStationVisible
                 }
             }
-            
+
             Text {
                 anchors.centerIn: parent
-                text: stationStatusContainer.stationStatusVisible ? "▶" : "◀"
+                text: root.rightPanelStationVisible ? "▶" : "◀"
                 color: "#ffffff"
                 font.pixelSize: 12
             }
         }
 
-        ColumnLayout{
-            id: stationStatus
-            anchors.fill: parent
-            anchors.rightMargin: 10
-            anchors.topMargin: 10
-            anchors.bottomMargin: 10
-            visible: stationStatusContainer.stationStatusVisible
-=======
-            onWheel: (wheel) => { wheel.accepted = true }
-        }
-
+        // 우측: 스테이션 상태 (좌측 droneStatus와 동일 마진·너비·구조로 대칭)
         ColumnLayout {
             id: stationStatus
             anchors.fill: parent
             visible: root.rightPanelStationVisible
->>>>>>> f9dfdbd69 (commit (clean))
             spacing: 2
 
-            StationList{
-
-            id: stationList
-
-            Layout.fillWidth: true
-            Layout.fillHeight: true
-            Layout.minimumWidth: 350
-            Layout.minimumHeight: 300
-            Layout.preferredWidth: stationStatus.width
-            Layout.maximumWidth: 350 * 1.25
-
-<<<<<<< HEAD
-        }
-        Item { Layout.fillHeight: true }
-
-        CustomStationMetrics{
-            id: customStationMetrics
-            Layout.fillWidth: true
-            Layout.preferredWidth: stationStatus.width
-            Layout.preferredHeight: 100
-            Layout.minimumHeight: 100
-            Layout.maximumHeight: 100
-            Layout.maximumWidth: 350 * 1.25
-        }
-
-        StationVideo{
-
-            id: stationVideo
-            Layout.fillWidth: true
-            Layout.minimumWidth: 350
-            Layout.minimumHeight: 200
-            Layout.preferredWidth: stationStatus.width
-            Layout.preferredHeight: Layout.preferredWidth * 0.75
-            Layout.maximumWidth: 350 * 1.25
-            Layout.maximumHeight: 200 * 1.25
-        
-            selectedStation: stationList.selectedStation
-
-        }
-
-        StationStatusMessage{
-
-            id: stationStatusMessage
-            Layout.fillWidth: true
-            Layout.minimumHeight: 100
-            Layout.minimumWidth: 350
-            Layout.preferredWidth: stationStatus.width
-            Layout.preferredHeight: Layout.preferredWidth * 0.35
-            Layout.maximumWidth: 350 * 1.25
-            Layout.maximumHeight: 100 * 1.25
-
-            selectedStation: stationList.selectedStation
-
-        }
-
-        StationControlPanel{
-
-            id: stationControlPanel
-            Layout.fillWidth: true
-            Layout.minimumHeight: stationControlButton.implicitHeight + 20
-            Layout.minimumWidth: 350
-            Layout.preferredWidth: stationStatus.width
-            Layout.preferredHeight: stationControlButton.implicitHeight + 20
-            Layout.maximumWidth: 350 * 1.25
-            Layout.maximumHeight: 300 * 1.25
-
-            selectedStation: stationList.selectedStation
-            
-        }
-        }
-    }    
-=======
+            StationList {
+                id: stationList
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                Layout.minimumWidth: root.width > 0 ? 350 : 0
+                Layout.minimumHeight: 300
+                Layout.preferredWidth: stationStatus.width
+                Layout.maximumWidth: 350 * 1.25
             }
 
-            Item { Layout.fillHeight: true }
-
-            CustomStationMetrics{
+            CustomStationMetrics {
                 id: customStationMetrics
                 Layout.fillWidth: true
                 Layout.preferredWidth: stationStatus.width
                 Layout.maximumWidth: 350 * 1.25
             }
 
-            StationVideo{
-
+            StationVideo {
                 id: stationVideo
                 Layout.fillWidth: true
-                Layout.minimumWidth: 350
+                Layout.minimumWidth: root.width > 0 ? 350 : 0
                 Layout.minimumHeight: 200
                 Layout.preferredWidth: stationStatus.width
                 Layout.preferredHeight: Layout.preferredWidth * 0.75
                 Layout.maximumWidth: 350 * 1.25
                 Layout.maximumHeight: 200 * 1.25
-
                 selectedStation: stationList.selectedStation
-
             }
 
-            StationStatusMessage{
-
+            StationStatusMessage {
                 id: stationStatusMessage
                 Layout.fillWidth: true
                 Layout.minimumHeight: 100
-                Layout.minimumWidth: 350
+                Layout.minimumWidth: root.width > 0 ? 350 : 0
                 Layout.preferredWidth: stationStatus.width
                 Layout.preferredHeight: Layout.preferredWidth * 0.35
                 Layout.maximumWidth: 350 * 1.25
                 Layout.maximumHeight: 100 * 1.25
-
                 selectedStation: stationList.selectedStation
-
             }
 
-            StationControlPanel{
-
+            StationControlPanel {
                 id: stationControlPanel
                 Layout.fillWidth: true
-                // 실제 높이는 StationControlPanel 내부에서 implicitHeight로 결정되므로,
-                // 여기서는 그 값을 그대로 사용하고, 내부 id(stationControlButton)는 직접 참조하지 않는다.
                 Layout.minimumHeight: stationControlPanel.implicitHeight
-                Layout.minimumWidth: 350
+                Layout.minimumWidth: root.width > 0 ? 350 : 0
                 Layout.preferredWidth: stationStatus.width
                 Layout.preferredHeight: stationControlPanel.implicitHeight
                 Layout.maximumWidth: 350 * 1.25
                 Layout.maximumHeight: 300 * 1.25
-
+                Layout.alignment: Qt.AlignBottom
                 selectedStation: stationList.selectedStation
-
             }
         }
 
@@ -647,7 +462,6 @@ RowLayout {
             acceptedButtons: Qt.NoButton
         }
     }
->>>>>>> f9dfdbd69 (commit (clean))
 }
 
 /*

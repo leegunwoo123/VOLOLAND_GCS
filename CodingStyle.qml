@@ -35,7 +35,6 @@ Item {
     readonly property real _rectHeight: ScreenTools.defaultFontPixelWidth * 10
 
     function myFunction() {
-        console.log("myFunction was called")
     }
 
     QGCPalette {

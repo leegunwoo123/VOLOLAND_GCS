@@ -64,10 +64,6 @@ Item {
         bottomLeftCoord =   centerCoord.atDistanceAndAzimuth(halfWidthMeters, -90).atDistanceAndAzimuth(halfHeightMeters, 180)
         bottomRightCoord =  centerCoord.atDistanceAndAzimuth(halfWidthMeters, 90).atDistanceAndAzimuth(halfHeightMeters, 180)
 
-        console.log(map.center)
-        console.log(topLeftCoord)
-        console.log(bottomRightCoord)
-
         if (inclusionPolygon) {
             myGeoFenceController.addInclusion(topLeftCoord, bottomRightCoord)
         } else {
@@ -137,8 +133,6 @@ Item {
             visible:        homePosition.isValid && _radius > 0
 
             property real _radius: myGeoFenceController.paramCircularFence
-
-            on_RadiusChanged: console.log("_radius", _radius, homePosition.isValid, homePosition)
         }
     }
 

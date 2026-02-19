@@ -20,10 +20,7 @@ Item {
     property string title
     property bool   selectFolder:   false
     property string defaultSuffix:  ""
-<<<<<<< HEAD
-=======
     property string suggestedFileName: ""  // Save 다이얼로그 열 때 초기 파일명으로 사용
->>>>>>> f9dfdbd69 (commit (clean))
 
     signal acceptedForLoad(string file)
     signal acceptedForSave(string file)
@@ -44,11 +41,6 @@ Item {
     function openForSave() {
         _openForLoad = false
         if (_mobileDlg && folder.length !== 0) {
-<<<<<<< HEAD
-            mobileFileSaveDialogComponent.createObject(mainWindow).open()
-        } else {
-            fullFileDialog.fileMode = FileDialog.SaveFile
-=======
             var dlg = mobileFileSaveDialogComponent.createObject(mainWindow, { initialFileName: _root.suggestedFileName })
             dlg.open()
         } else {
@@ -59,7 +51,6 @@ Item {
                     base += "/"
                 fullFileDialog.selectedFile = "file:///" + base + suggestedFileName
             }
->>>>>>> f9dfdbd69 (commit (clean))
             fullFileDialog.open()
         }
     }
@@ -205,15 +196,12 @@ Item {
             id:         mobileFileSaveDialog
             title:      _root.title
             buttons:    Dialog.Cancel | Dialog.Ok
-<<<<<<< HEAD
-=======
             property string initialFileName: ""
 
             Component.onCompleted: {
                 if (initialFileName.length > 0)
                     filenameTextField.text = initialFileName
             }
->>>>>>> f9dfdbd69 (commit (clean))
 
             onAccepted: {
                 if (filenameTextField.text == "") {

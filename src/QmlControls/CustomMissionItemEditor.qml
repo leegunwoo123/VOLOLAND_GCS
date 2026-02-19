@@ -17,15 +17,11 @@ Rectangle {
     id:             _root
     readonly property real _minRowHeight: ScreenTools.defaultFontPixelHeight * 2.5   // 터치/클릭 인식용 최소 행 높이
     readonly property real _maxExpandedHeight: ScreenTools.defaultFontPixelHeight * 18  // 확대 시 상한 → 일정 크기 유지
-<<<<<<< HEAD
-    height:         Math.max(_currentItem ? (editorLoader.y + editorLoader.height + _innerMargin) : (topRowLayout.y + topRowLayout.height + _margin), _minRowHeight)  // 기존: 확대 시 편집기 높이만큼 무제한
-=======
     // 기존(선택 시에만 펼침):
     // height:         Math.max(_currentItem ? (editorLoader.y + editorLoader.height + _innerMargin) : (topRowLayout.y + topRowLayout.height + _margin), _minRowHeight)
     //
     // 모든 아이템 항상 펼침
     height:         Math.max(editorLoader.y + editorLoader.height + _innerMargin, _minRowHeight)
->>>>>>> f9dfdbd69 (commit (clean))
     color:          _currentItem ? qgcPal.missionItemEditor : qgcPal.windowShade
     radius:         _radius
     opacity:        _currentItem ? 1.0 : 0.7
@@ -60,11 +56,8 @@ Rectangle {
     readonly property bool  _waypointsOnlyMode: QGroundControl.corePlugin.options.missionWaypointsOnly
     readonly property bool  _canReorder:        missionItem.sequenceNumber >= 2
 
-<<<<<<< HEAD
-=======
     readonly property string _defaultMissionSettingsEditor: "qrc:/qml/QGroundControl/Controls/MissionSettingsEditor.qml"
     readonly property string _customMissionSettingsEditor: "qrc:/qml/QGroundControl/Controls/CustomMissionSettingEditor.qml"
->>>>>>> f9dfdbd69 (commit (clean))
     readonly property string _dragKey: "mission-item-reorder"
     /// 드래그 시작 시점의 모델 인덱스 (레퍼런스 비교 실패 대비)
     property int _dragStartIndex: -1
@@ -108,33 +101,13 @@ Rectangle {
                 anchors.verticalCenter: parent.verticalCenter
             }
             QGCLabel {
-<<<<<<< HEAD
-                text:                   missionItem.commandName
-=======
                 text:                   missionItem.sequenceNumber === 0 ? "미션 시작" : missionItem.commandName
->>>>>>> f9dfdbd69 (commit (clean))
                 color:                  _outerTextColor
                 anchors.verticalCenter: parent.verticalCenter
             }
         }
     }
 
-<<<<<<< HEAD
-    // DropArea z를 proxy(1000)보다 높게 → ListView 내에서도 이 행이 드롭 타겟일 때 히트가 여기로 감
-    DropArea {
-        z:                      1500
-        anchors.fill: parent
-        keys:                   [_dragKey]   // Drag.keys와 일치해야 필터링 정상 동작 (빈 배열이면 거부될 수 있음)
-        onEntered: (drag) => {
-            console.log("[MissionReorder] My Index: " + (typeof index !== "undefined" ? index : "undefined"))
-            var toIdx = (typeof index !== "undefined") ? index : -1
-            console.log("[MissionReorder] 목표행 onEntered index=" + toIdx + " (시작→목표 확인용)")
-            console.log("[MissionReorder] onEntered dropTargetIndex=" + toIdx + " drag.source===_root=" + (drag.source === _root) + " drag.keys=" + JSON.stringify(drag.keys))
-            if (drag.source === _root) return
-            var isOurReorder = (drag.source._dragStartIndex !== undefined && drag.source._dragStartIndex >= 0) || (drag.source.missionItem !== undefined && drag.source.missionItem !== null)
-            drag.accepted = toIdx >= 2 && isOurReorder
-            console.log("[MissionReorder] onEntered accepted=" + drag.accepted + " isOurReorder=" + isOurReorder)
-=======
     DropArea {
         z:                      1500
         anchors.fill:           parent
@@ -144,21 +117,15 @@ Rectangle {
             var toIdx = (typeof index !== "undefined") ? index : -1
             var isOurReorder = (drag.source._dragStartIndex !== undefined && drag.source._dragStartIndex >= 0) || (drag.source.missionItem !== undefined && drag.source.missionItem !== null)
             drag.accepted = toIdx >= 2 && isOurReorder
-            console.log("[MissionReorder] delegate onEntered index=" + toIdx + " accepted=" + (toIdx >= 2 && isOurReorder) + " drag.source._dragStartIndex=" + (drag.source._dragStartIndex !== undefined ? drag.source._dragStartIndex : "n/a"))
->>>>>>> f9dfdbd69 (commit (clean))
         }
         onExited: (drag) => {
             var toIdx = (typeof index !== "undefined") ? index : -1
-            console.log("[MissionReorder] 목표행 onExited index=" + toIdx)
         }
         onDropped: (drag) => {
             var toIdx = (typeof index !== "undefined") ? index : -1
-            console.log("[MissionReorder] 목표행 onDropped index=" + toIdx + " (시작→목표 확인용)")
-            console.log("[MissionReorder] onDropped drag.source===_root=" + (drag.source === _root) + " _dragStartIndex=" + (drag.source._dragStartIndex !== undefined ? drag.source._dragStartIndex : "n/a"))
             if (drag.source === _root) return
             var model = _missionController.visualItems
             if (!model) {
-                console.log("[MissionReorder] onDropped ABORT model is null")
                 return
             }
             var fromIdx = (drag.source._dragStartIndex !== undefined && drag.source._dragStartIndex >= 0)
@@ -174,12 +141,9 @@ Rectangle {
                 }
             }
             var toIdx = (typeof index !== "undefined") ? index : -1
-            console.log("[MissionReorder] onDropped fromIdx=" + fromIdx + "(" + fromIdxSource + ") toIdx=" + toIdx + " model.count=" + model.count)
             if (fromIdx < 2 || toIdx < 2 || fromIdx === toIdx) {
-                console.log("[MissionReorder] onDropped SKIP reason: fromIdx<2=" + (fromIdx < 2) + " toIdx<2=" + (toIdx < 2) + " fromIdx===toIdx=" + (fromIdx === toIdx))
                 return
             }
-            console.log("[MissionReorder] onDropped CALL moveVisualItem(" + fromIdx + "," + toIdx + ")")
             CustomMissionReorderHelper.moveVisualItem(_missionController, fromIdx, toIdx)
             if (listView && listView.forceLayout) {
                 Qt.callLater(listView.forceLayout)
@@ -250,11 +214,7 @@ Rectangle {
 
                 property real _padding: ScreenTools.comboBoxPadding
 
-<<<<<<< HEAD
-                QGCLabel { text: missionItem.commandName }
-=======
                 QGCLabel { text: missionItem.sequenceNumber === 0 ? "미션 시작" : missionItem.commandName }
->>>>>>> f9dfdbd69 (commit (clean))
 
                 QGCColoredImage {
                     height:             ScreenTools.defaultFontPixelWidth
@@ -292,11 +252,7 @@ Rectangle {
             height:                 commandPicker.height
             visible:                !missionItem.isCurrentItem || !missionItem.isSimpleItem || _waypointsOnlyMode || missionItem.isTakeoffItem
             verticalAlignment:      Text.AlignVCenter
-<<<<<<< HEAD
-            text:                   missionItem.commandName
-=======
             text:                   missionItem.sequenceNumber === 0 ? "미션 시작" : missionItem.commandName
->>>>>>> f9dfdbd69 (commit (clean))
             color:                  _outerTextColor
         }
 
@@ -342,7 +298,6 @@ Rectangle {
                 if (_canReorder) {
                     _root._dragStartIndex = (typeof index !== "undefined") ? index : -1
                     _root._dragWasActive = true  // onReleased/오버레이 onDropped에서 사용; MouseArea에는 onDragActiveChanged 없음
-                    console.log("[MissionReorder] onPressed index=" + (typeof index !== "undefined" ? index : "n/a") + " _dragStartIndex=" + _root._dragStartIndex)
                 }
             }
             onReleased: (mouse) => {
@@ -354,20 +309,11 @@ Rectangle {
                 var fromIdx = _root._dragStartIndex
                 var toIdx = -1
                 var lv = _root.listView
-<<<<<<< HEAD
-                if (lv && lv.contentItem) {
-                    var p = dragArea.mapToItem(lv.contentItem, mouse.x, mouse.y)
-                    toIdx = lv.indexAt(p.x, p.y)
-                }
-                console.log("[MissionReorder] onReleased fromIdx=" + fromIdx + " toIdx(indexAt)=" + toIdx)
-=======
                 var p = Qt.point(0, 0)
                 if (lv && lv.contentItem) {
                     p = dragArea.mapToItem(lv.contentItem, mouse.x, mouse.y)
                     toIdx = lv.indexAt(p.x, p.y)
                 }
-                console.log("[MissionReorder] onReleased fromIdx=" + fromIdx + " toIdx(indexAt)=" + toIdx + " mouse.x=" + mouse.x + " mouse.y=" + mouse.y + " p.x=" + p.x + " p.y=" + p.y)
->>>>>>> f9dfdbd69 (commit (clean))
                 if (toIdx < 2 || fromIdx === toIdx) {
                     _root._dragStartIndex = -1
                     _root._dragWasActive = false
@@ -524,15 +470,11 @@ Rectangle {
         anchors.margins:    _innerMargin
         anchors.left:       parent.left
         anchors.top:        topRowLayout.bottom
-<<<<<<< HEAD
-        source:             _currentItem ? missionItem.editorQml : ""
-=======
         // 기존(선택 시에만 로드):
         // source:             _currentItem ? (missionItem.editorQml === _defaultMissionSettingsEditor ? _customMissionSettingsEditor : missionItem.editorQml) : ""
         //
         // 모든 아이템 항상 상세 로드
         source:             missionItem.editorQml === _defaultMissionSettingsEditor ? _customMissionSettingsEditor : missionItem.editorQml
->>>>>>> f9dfdbd69 (commit (clean))
         asynchronous:       true
 
         property var    masterController:   _masterController

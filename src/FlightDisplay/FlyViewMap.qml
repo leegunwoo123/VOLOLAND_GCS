@@ -40,8 +40,9 @@ FlightMap {
 
     property var    _activeVehicle:             QGroundControl.multiVehicleManager.activeVehicle
     property var    _planMasterController:      planMasterController
-    property var    _geoFenceController:        planMasterController.geoFenceController
-    property var    _rallyPointController:      planMasterController.rallyPointController
+    property var    _missionController:         _planMasterController ? _planMasterController.missionController : null
+    property var    _geoFenceController:        _planMasterController ? _planMasterController.geoFenceController : null
+    property var    _rallyPointController:      _planMasterController ? _planMasterController.rallyPointController : null
     property var    _activeVehicleCoordinate:   _activeVehicle ? _activeVehicle.coordinate : QtPositioning.coordinate()
     property real   _toolButtonTopMargin:       parent.height - mainWindow.height + (ScreenTools.defaultFontPixelHeight / 2)
     property real   _toolsMargin:               ScreenTools.defaultFontPixelWidth * 0.75
@@ -51,6 +52,8 @@ FlightMap {
     property bool   _disableVehicleTracking:    false
     property bool   _keepVehicleCentered:       pipMode ? true : false
     property bool   _saveZoomLevelSetting:      true
+    property bool   _mainWindowIsMap:           pipView ? (_pipState.state === _pipState.fullState) : false
+    property bool   _isFullWindowItemDark:      _mainWindowIsMap ? isSatelliteMap : true
 
     function _adjustMapZoomForPipMode() {
         _saveZoomLevelSetting = false
@@ -225,7 +228,7 @@ FlightMap {
     QGCMapPalette { id: mapPal; lightColors: isSatelliteMap }
 
     Connections {
-        target:                 _missionController
+        target:                 _missionController ? _missionController : null
         ignoreUnknownSignals:   true
         function onNewItemsFromVehicle() {
             var visualItems = _missionController.visualItems
@@ -385,7 +388,8 @@ FlightMap {
             // Only allow editing the radius, not the position
             centerDragHandleVisible = false
 
-            globals.guidedControllerFlyView.fwdFlightGotoMapCircle = this
+            if (globals.guidedControllerFlyView)
+                globals.guidedControllerFlyView.fwdFlightGotoMapCircle = this
         }
 
         Binding {
@@ -548,7 +552,10 @@ FlightMap {
             return _mapCircle.radius.rawValue
         }
 
-        Component.onCompleted: globals.guidedControllerFlyView.orbitMapCircle = orbitMapCircle
+        Component.onCompleted: {
+            if (globals.guidedControllerFlyView)
+                globals.guidedControllerFlyView.orbitMapCircle = orbitMapCircle
+        }
 
         QGCMapCircle {
             id:                 _mapCircle

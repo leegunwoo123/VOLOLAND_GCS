@@ -288,12 +288,6 @@ Rectangle {
             spacing:        ScreenTools.defaultFontPixelHeight
             visible:        !landingCoordColumn.visible
 
-            onVisibleChanged: {
-                if (visible) {
-                    console.log(missionItem.landingDistance.rawValue)
-                }
-            }
-
             QGCLabel {
                 Layout.fillWidth:   true
                 wrapMode:           Text.WordWrap

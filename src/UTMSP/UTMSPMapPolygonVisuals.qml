@@ -104,7 +104,6 @@ Item {
         topRightCoord        =  centerCoord.atDistanceAndAzimuth(halfWidthMeters, 90).atDistanceAndAzimuth(halfHeightMeters, 0)
         bottomLeftCoord      =  centerCoord.atDistanceAndAzimuth(halfWidthMeters, -90).atDistanceAndAzimuth(halfHeightMeters, 180)
         bottomRightCoord     =  centerCoord.atDistanceAndAzimuth(halfWidthMeters, 90).atDistanceAndAzimuth(halfHeightMeters, 180)
-        console.log([topLeftCoord, topRightCoord, bottomRightCoord, bottomLeftCoord])
         return [topLeftCoord, topRightCoord, bottomRightCoord, bottomLeftCoord]
     }
 

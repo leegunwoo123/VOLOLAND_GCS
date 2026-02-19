@@ -48,8 +48,6 @@ Item {
 
     Component.onCompleted: {
         _missionLineViewComponent = missionLineViewComponent.createObject(map)
-        if (_missionLineViewComponent.status === Component.Error)
-            console.log(_missionLineViewComponent.errorString())
         map.addMapItemGroup(_missionLineViewComponent)
     }
 

@@ -29,6 +29,7 @@ import QGroundControl.UTMSP
 ApplicationWindow {
     id:             mainWindow
     visible:        true
+    flags:          Qt.Window | Qt.FramelessWindowHint
 
     minimumHeight: customFlyView.implicitHeight + customtoolBar.height + 40
 
@@ -40,10 +41,116 @@ ApplicationWindow {
     property bool   _customPlanViewShown: false
     /// PlanView의 planMasterController(0번 mission start 포함). FlyViewMap/CustomPlanView에서 공유
     readonly property var _planController: typeof planViewArea !== "undefined" ? planViewArea._planController : null
+    
+    /// 최소화 전 윈도우 상태 저장 (최대화 상태 복원용)
+    property int _savedVisibilityBeforeMinimize: Window.Windowed
+    /// 사용자가 의도적으로 상태를 변경했는지 여부 (최대화/복원 버튼 클릭 시 true)
+    property bool _userInitiatedStateChange: false
+    /// 서버 연결 상태 (0: 연결됨, 1: 연결중, 그 외: 연결끊김). DroneList backend와 동기화, 상단바 아이콘 표시용
+    property int serverConnectionStatus: 2
+    /// 서버 설정 팝업용 목록 (config 로드/저장). 각 요소: { serverName, ipAddress, port, isSelected }
+    property var serverListData: []
 
     Component.onCompleted: {
-        // Start the sequence of first run prompt(s)
+        var raw = QGroundControl.loadGlobalSetting("ServerSettings/List", "[]")
+        try {
+            var arr = JSON.parse(raw)
+            if (Array.isArray(arr))
+                mainWindow.serverListData = arr
+        } catch (_) { }
         firstRunPromptManager.nextPrompt()
+    }
+
+    // 최소화에서 복원 시 저장된 상태로 복원 (사용자가 의도적으로 변경한 경우 제외)
+    onVisibilityChanged: {
+        if (!_userInitiatedStateChange && visibility === Window.Windowed && _savedVisibilityBeforeMinimize === Window.Maximized) {
+            // 최소화에서 복원 시 저장된 상태가 최대화였으면 다시 최대화
+            Qt.callLater(function() {
+                if (mainWindow.visibility === Window.Windowed && !_userInitiatedStateChange) {
+                    mainWindow.showMaximized()
+                }
+            })
+        }
+        
+        
+        // 상태 변경 완료 후 플래그 리셋
+        if (_userInitiatedStateChange) {
+            _userInitiatedStateChange = false
+        }
+    }
+    
+    // 최소화 전 상태를 저장하는 함수
+    function saveVisibilityBeforeMinimize() {
+        _savedVisibilityBeforeMinimize = mainWindow.visibility === Window.Maximized ? Window.Maximized : Window.Windowed
+    }
+    
+    // 사용자가 의도적으로 상태를 변경할 때 호출하는 함수
+    function setUserInitiatedStateChange() {
+        _userInitiatedStateChange = true
+        // 현재 상태를 저장된 상태로 업데이트
+        _savedVisibilityBeforeMinimize = mainWindow.visibility === Window.Maximized ? Window.Maximized : Window.Windowed
+    }
+    
+    // Keys는 Item에만 부착 가능. ApplicationWindow 대신 내부 Item에서 키 처리
+    Item {
+        id: mainWindowKeyHandler
+        anchors.fill: parent
+        focus: true
+
+        Keys.onPressed: (event) => {
+            // Aero Snap 단축키 처리 (Windows 키 + 방향키)
+            var isWindowsKey = (event.modifiers & Qt.MetaModifier) || (event.modifiers & Qt.AltModifier)
+            
+            if (isWindowsKey && !ScreenTools.isMobile && mainWindow.visibility !== Window.FullScreen) {
+                if (event.key === Qt.Key_Up) {
+                    mainWindow.setUserInitiatedStateChange()
+                    WindowHelper.handleAeroSnapShortcut(mainWindow, "up")
+                    event.accepted = true
+                    return
+                } else if (event.key === Qt.Key_Down) {
+                    mainWindow.setUserInitiatedStateChange()
+                    WindowHelper.handleAeroSnapShortcut(mainWindow, "down")
+                    event.accepted = true
+                    return
+                } else if (event.key === Qt.Key_Left) {
+                    mainWindow.setUserInitiatedStateChange()
+                    WindowHelper.handleAeroSnapShortcut(mainWindow, "left")
+                    event.accepted = true
+                    return
+                } else if (event.key === Qt.Key_Right) {
+                    mainWindow.setUserInitiatedStateChange()
+                    WindowHelper.handleAeroSnapShortcut(mainWindow, "right")
+                    event.accepted = true
+                    return
+                }
+            }
+            
+            // 키보드 이동 모드 처리
+            if (mainWindow._keyboardMoveMode) {
+                var moveStep = 10
+                var deltaX = 0
+                var deltaY = 0
+                
+                if (event.key === Qt.Key_Left) {
+                    deltaX = -moveStep
+                } else if (event.key === Qt.Key_Right) {
+                    deltaX = moveStep
+                } else if (event.key === Qt.Key_Up) {
+                    deltaY = -moveStep
+                } else if (event.key === Qt.Key_Down) {
+                    deltaY = moveStep
+                } else if (event.key === Qt.Key_Escape || event.key === Qt.Key_Enter || event.key === Qt.Key_Return) {
+                    mainWindow._keyboardMoveMode = false
+                    event.accepted = true
+                    return
+                }
+                
+                if (deltaX !== 0 || deltaY !== 0) {
+                    WindowHelper.moveWindowByKeys(mainWindow, deltaX, deltaY)
+                    event.accepted = true
+                }
+            }
+        }
     }
 
     /// Saves main window position and size and re-opens it in the same position and size next time
@@ -92,12 +199,9 @@ ApplicationWindow {
         readonly property var       planMasterControllerFlyView:    customFlyView.planController !== undefined ? customFlyView.planController : null
         readonly property var       guidedControllerFlyView:        customFlyView.guidedController !== undefined ? customFlyView.guidedController : null
 
-<<<<<<< HEAD
-=======
         // FlyViewMap 등 mapToItem(globals.parent, ...)용 (QGC와 동일)
         property var                parent:                         mainWindow
 
->>>>>>> f9dfdbd69 (commit (clean))
         // Number of QGCTextField's with validation errors. Used to prevent closing panels with validation errors.
         property int                validationErrorCount:           0 
 
@@ -134,8 +238,12 @@ ApplicationWindow {
     function showCustomFlyView() {
         _planViewShown = false
         _customPlanViewShown = false
-        planView.visible = false
-        customPlanView.visible = false
+    }
+
+    /// Custom Plan 뷰에서 droneStatus(좌측 패널) 접었을 때 다시 펼치기용
+    function expandFlyViewLeftPanel() {
+        if (customFlyView)
+            customFlyView.leftPanelVisible = true
     }
 
     /// Custom Plan 뷰: 좌측 droneStatus + CustomPlanView (독립 화면)
@@ -143,8 +251,6 @@ ApplicationWindow {
         if (allowViewSwitch()) {
             _planViewShown = true
             _customPlanViewShown = true
-            planView.visible = false
-            customPlanView.visible = true
         }
     }
 
@@ -152,15 +258,11 @@ ApplicationWindow {
     function showPlanView() {
         _planViewShown = true
         _customPlanViewShown = false
-        planView.visible = true
-        customPlanView.visible = false
     }
 
     function showFlyView() {
         _planViewShown = false
         _customPlanViewShown = false
-        planView.visible = false
-        customPlanView.visible = false
     }
 
     function showTool(toolTitle, toolSource, toolIcon) {
@@ -290,6 +392,7 @@ ApplicationWindow {
     }
 
     onClosing: (close) => {
+        QGroundControl.saveGlobalSetting("ServerSettings/List", JSON.stringify(mainWindow.serverListData))
         if (!_forceClose) {
             _closeChecksToSkip = 0
             close.accepted = performCloseChecks()
@@ -301,109 +404,70 @@ ApplicationWindow {
         color:          QGroundControl.globalPalette.window
     }
 
-<<<<<<< HEAD
-    FlyViewMap {
-        id:                     mapControl
-        anchors.fill: parent
-        z: -1
-        planMasterController:   _planController
-        rightPanelWidth:        ScreenTools.defaultFontPixelHeight * 9
-        pipView:                _pipView
-        pipMode:                !_mainWindowIsMap
-        toolInsets:             customOverlay.totalToolInsets
-        mapName:                "FlightDisplayView"
-        enabled:                !viewer3DWindow.isOpen
-    }
-
-=======
-    // QGC와 동일: Fly 맵은 MainWindow가 아닌 Fly 뷰(CustomFlyView) 내부에 둠
->>>>>>> f9dfdbd69 (commit (clean))
-    CustomToolbar {
-        id: customtoolBar
+    // 툴바 하나로 통일 (Fly / Custom Plan 동일)
+    Item {
+        id: toolbarContainer
         anchors.top: parent.top
-        // 높이 미지정 → CustomToolbar.qml 기본값 ScreenTools.toolbarHeight (CustomPlanViewToolBar와 동일)
-        // Fly 뷰에서만 표시. Plan/Custom Plan 진입 시 숨김
-        visible: !mainWindow._planViewShown
+        width: parent.width
+        height: (visible ? ScreenTools.toolbarHeight : 0)
+        visible: !mainWindow._planViewShown || mainWindow._customPlanViewShown
+
+        CustomToolbar {
+            id: customtoolBar
+            anchors.fill: parent
+            visible: true
+            showPlanReturnButton: mainWindow._customPlanViewShown
+        }
     }
 
-    // Custom Plan View일 때만 상단 툴바 → CustomFlyView와 동일하게 툴바 밑에 droneStatus
-    CustomPlanViewToolBar {
-        id: customPlanToolBar
-        anchors.top: parent.top
-        anchors.left: parent.left
-        anchors.right: parent.right
-        visible: mainWindow._customPlanViewShown
-        planMasterController: _planController
-    }
-
-    // Fly/Plan 뷰 컨테이너. Custom Plan = 툴바 밑(droneStatus 동일 위치), Plan Flight = 상단부터, Fly = customtoolBar 밑
+    // Fly/Plan 뷰 컨테이너
     Item {
         id: flyPlanContainer
-        anchors.top: mainWindow._customPlanViewShown ? customPlanToolBar.bottom : (mainWindow._planViewShown ? parent.top : customtoolBar.bottom)
+        anchors.top: (mainWindow._customPlanViewShown || !mainWindow._planViewShown) ? toolbarContainer.bottom : parent.top
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.bottom: parent.bottom
+
         RowLayout {
-            anchors.fill: parent
-            spacing: 0
-            CustomFlyView {
-                id: customFlyView
-                Layout.fillHeight: true
-                Layout.fillWidth: !mainWindow._planViewShown
-<<<<<<< HEAD
-                Layout.preferredWidth: mainWindow._planViewShown ? (mainWindow._customPlanViewShown ? Math.min(mainWindow.width * 0.20, 350 * 1.25) : 0) : undefined
-                planViewActive: mainWindow._customPlanViewShown
-            }
-            // PlanView와 CustomPlanView는 독립 화면. 같은 영역에 겹쳐 두고 한 번에 하나만 표시. PlanView의 planMasterController(0번 mission start 포함)를 공유.
-            Item {
-                id: planViewArea
-                Layout.fillWidth: true
-                Layout.fillHeight: true
-                Layout.minimumWidth: 0
-=======
-                // Custom Plan 뷰: 내부 DroneList 등 minimumWidth(350) 만족하도록 최소 350 부여 (짤림 방지)
-                // QML double 속성에는 undefined를 넣지 않고, Fly 모드에서는 0으로 두어 경고를 제거한다.
-                Layout.preferredWidth: mainWindow._planViewShown
-                                        ? (mainWindow._customPlanViewShown ? Math.max(Math.min(mainWindow.width * 0.20, 350 * 1.25), 350) : 0)
+                anchors.fill: parent
+                spacing: 0
+                CustomFlyView {
+                    id: customFlyView
+                    Layout.fillHeight: true
+                    Layout.fillWidth: !mainWindow._planViewShown
+                    // Custom Plan 뷰: 펼침 시 원하는 너비 직접 지정( leftPanelWidth 쓰면 접힌 상태에서 0→순환으로 펼쳐도 공간 안 생김)
+                    Layout.preferredWidth: mainWindow._planViewShown
+                                        ? (mainWindow._customPlanViewShown && customFlyView.leftPanelVisible ? customFlyView.leftPanelWidth : 0)
                                         : 0
-                planViewActive: mainWindow._customPlanViewShown
-                planMasterController: mainWindow._planController
-            }
-            // PlanView와 CustomPlanView는 독립 화면. 같은 영역에 겹쳐 두고 한 번에 하나만 표시. PlanView의 planMasterController(0번 mission start 포함)를 공유.
-            // Fly 모드(_planViewShown == false)에서는 레이아웃에서 폭을 차지하지 않도록 Layout.*을 조건부로 제어한다.
-            Item {
-                id: planViewArea
-                Layout.fillWidth:  mainWindow._planViewShown
-                Layout.fillHeight: mainWindow._planViewShown
-                Layout.minimumWidth: mainWindow._planViewShown ? 0 : 0
-                Layout.preferredWidth: mainWindow._planViewShown ? undefined : 0
->>>>>>> f9dfdbd69 (commit (clean))
-                readonly property var _planController: planView._planMasterController
-                PlanView {
-                    id: planView
-                    anchors.fill: parent
-                    visible: mainWindow._planViewShown && !mainWindow._customPlanViewShown
-                    z: mainWindow._customPlanViewShown ? 0 : 1
+                    planViewActive: mainWindow._customPlanViewShown
+                    planMasterController: mainWindow._planController
                 }
-                CustomPlanView {
-                    id: customPlanView
-                    anchors.fill: parent
-                    visible: mainWindow._customPlanViewShown
-                    z: mainWindow._customPlanViewShown ? 1 : 0
-                    planMasterController: planViewArea._planController
-                    showToolbar: false
-                    deviceName: customFlyView.selectedDeviceName
-<<<<<<< HEAD
-                    // droneStatus와 동일한 식으로 고정 (customFlyView.width는 레이아웃 갱신 시점에 0일 수 있음)
-                    droneStatusWidth: mainWindow._customPlanViewShown ? Math.min(mainWindow.width * 0.20, 350 * 1.25) : 0
-=======
-                    // CustomFlyView 좌측 패널 실제 너비와 동기화
-                    droneStatusWidth: mainWindow._customPlanViewShown ? customFlyView.leftPanelWidth : 0
->>>>>>> f9dfdbd69 (commit (clean))
+                Item {
+                    id: planViewArea
+                    Layout.fillWidth: mainWindow._planViewShown
+                    Layout.fillHeight: mainWindow._planViewShown
+                    Layout.minimumWidth: 0
+                    Layout.preferredWidth: 0
+                    readonly property var _planController: planView._planMasterController
+                    PlanView {
+                        id: planView
+                        anchors.fill: parent
+                        visible: mainWindow._planViewShown && !mainWindow._customPlanViewShown
+                        z: mainWindow._customPlanViewShown ? 0 : 1
+                    }
+                    CustomPlanView {
+                        id: customPlanView
+                        anchors.fill: parent
+                        visible: mainWindow._customPlanViewShown
+                        z: mainWindow._customPlanViewShown ? 1 : 0
+                        planMasterController: planViewArea._planController
+                        showToolbar: false
+                        deviceName: customFlyView.selectedDeviceName
+                        droneStatusWidth: mainWindow._customPlanViewShown ? customFlyView.leftPanelWidth : 0
+                        leftPanelCollapsed: mainWindow._customPlanViewShown && !customFlyView.leftPanelVisible
+                    }
                 }
             }
-        }
-        // Plan 뷰가 숨겨질 때마다 툴바 표시 플래그 해제 (뒤로가기 등 모든 경로 대응)
         Connections {
             target: planView
             function onVisibleChanged() {
@@ -419,137 +483,96 @@ ApplicationWindow {
             }
         }
     }
-<<<<<<< HEAD
-/*
-    ColumnLayout{
-    id: droneStatus
-    
-    anchors.left: parent.left
-    anchors.top: customtoolBar.bottom
-    anchors.bottom: parent.bottom
 
-    anchors.leftMargin: 10
-    anchors.topMargin: 20
-    anchors.bottomMargin: 20
+    // 프레임리스 윈도우 드래그 및 우클릭 메뉴 처리
+    MouseArea {
+        id: windowDragArea
+        anchors.top: parent.top
+        height: customtoolBar.visible ? customtoolBar.height : 0
+        acceptedButtons: Qt.LeftButton | Qt.RightButton
+        cursorShape: Qt.ArrowCursor
+        z: -100
+        enabled: true
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.leftMargin: customtoolBar.visible ? customtoolBar.dragAreaLeft : 0
+        anchors.rightMargin: customtoolBar.visible ? customtoolBar.dragAreaRight : 0
 
-    width: mainWindow.width * 0.18
-    height: mainWindow.height
-
-    spacing: 10 
-
-        DroneList {
-            id:                     droneList
-            Layout.fillWidth: true
-            Layout.fillHeight: true
-            Layout.minimumWidth: 350
-            Layout.minimumHeight: 300
-            Layout.preferredWidth: droneStatus.width
-            Layout.preferredHeight: droneStatus.height
-            Layout.maximumWidth: 350 * 1.25
-            
-            utmspSendActTrigger:    _utmspSendActTrigger
-        }
-        Item { Layout.fillHeight: true }
-
-        FlyViewBottomRightRowLayout {
-            id:                 bottomRightRowLayout
-            Layout.fillWidth:   true
-            // 여기서 높이와 너비를 너무 빡빡하게 제한하지 마세요.
-            Layout.preferredHeight: implicitHeight 
-            deviceName:         droneList.selectedDevice
-            //visible: droneList.selectedDevice !== ""
-        }
-
-        DroneVideo{
+        property point _pressPos: Qt.point(0, 0)
+        property bool _dragStarted: false
         
-            id: droneVideo
-            Layout.fillWidth: true
-            Layout.fillHeight: true
-            Layout.minimumWidth: 350
-            Layout.minimumHeight: 200
-            Layout.preferredWidth: droneStatus.width
-            Layout.preferredHeight: droneVideo.width * 0.75
-            Layout.maximumWidth: 350 * 1.25
-            Layout.maximumHeight: 200 * 1.25
-            
-            
-            deviceName: droneList.selectedDevice
-
-            //visible: droneList.selectedDevice !== ""
+        onPressed: (mouse) => {
+            if (customtoolBar.visible) {
+                var toolbarPos = mapToItem(customtoolBar, mouse.x, mouse.y)
+                var leftButtonArea = toolbarPos.x < customtoolBar.dragAreaLeft
+                var rightButtonArea = toolbarPos.x > (customtoolBar.width - customtoolBar.dragAreaRight)
+                if (leftButtonArea || rightButtonArea) {
+                    mouse.accepted = false
+                    return
+                }
+            }
+            if (mouse.button === Qt.LeftButton) {
+                // 클릭 위치 저장
+                _pressPos = Qt.point(mouse.x, mouse.y)
+                _dragStarted = false
+            } else if (mouse.button === Qt.RightButton) {
+                // 우클릭: Windows 시스템 메뉴 표시
+                if (!ScreenTools.isMobile && mainWindow.visibility !== Window.FullScreen) {
+                    var rootPos = mapToItem(mainWindow.contentItem, mouse.x, mouse.y)
+                    var globalX = mainWindow.x + rootPos.x
+                    var globalY = mainWindow.y + rootPos.y
+                    
+                    WindowHelper.showSystemMenu(mainWindow, globalX, globalY)
+                    mouse.accepted = true
+                }
+            }
         }
-
-        DroneStatusMessage{
-
-            id: droneStatusMessage
-            Layout.fillWidth: true
-            Layout.minimumHeight: 100
-            Layout.minimumWidth: droneStatus.width
-            Layout.preferredWidth: droneStatus.width
-            Layout.preferredHeight: droneStatus.width * 0.35
-            Layout.maximumWidth: 350 * 1.25
-            Layout.maximumHeight: 100 * 1.25
         
-            
-            deviceName: droneList.selectedDevice
-
-            //visible: droneList.selectedDevice !== ""
+        // 타이틀바 더블클릭: Windows 기본 동작 (최대화/복원 토글)
+        // 단일 클릭은 툴바·버튼으로 전달되므로 onDoubleClicked만 처리
+        onDoubleClicked: (mouse) => {
+            if (mouse.button === Qt.LeftButton && !ScreenTools.isMobile && mainWindow.visibility !== Window.FullScreen) {
+                mainWindow.setUserInitiatedStateChange()
+                WindowHelper.toggleMaximizeRestore(mainWindow)
+            }
         }
-
-        //Item { Layout.fillHeight: true }
-
-        DroneControlPanel{
-            id: controlPanel
-            Layout.fillWidth: true
-            Layout.minimumHeight: droneControlButton.implicitHeight + 20
-            Layout.minimumWidth: droneStatus.width
-            Layout.preferredWidth: droneStatus.width
-            Layout.preferredHeight: droneControlButton.implicitHeight + 20
-            Layout.maximumWidth: 350 * 1.25
-            Layout.maximumHeight: 300 * 1.25
-            Layout.alignment: Qt.AlignBottom
-
-            deviceName: droneList.selectedDevice
-            backend: backendClient
-
-            //visible: droneList.selectedDevice !== ""
+        
+        onPositionChanged: (mouse) => {
+            if (mouse.buttons & Qt.LeftButton && !_dragStarted) {
+                // 마우스가 움직였으면 드래그 시작으로 간주
+                var deltaX = Math.abs(mouse.x - _pressPos.x)
+                var deltaY = Math.abs(mouse.y - _pressPos.y)
+                
+                // 최소 이동 거리 체크 (드래그 시작으로 간주) - 5픽셀 이상
+                if (deltaX > 5 || deltaY > 5) {
+                    _dragStarted = true
+                    
+                    if (mainWindow.visibility === Window.Windowed) {
+                        // 일반 상태에서는 바로 드래그 시작
+                        var rootPos = mapToItem(mainWindow.contentItem, _pressPos.x, _pressPos.y)
+                        WindowHelper.startSystemMove(mainWindow, rootPos.x, rootPos.y)
+                    }
+                    // 최대화 상태에서는 드래그하지 않음 (복원 로직 제거)
+                }
+            }
+        }
+        
+        onReleased: (mouse) => {
+            // 드래그가 실제로 시작되었을 때만 Aero Snap 처리
+            if (_dragStarted && mouse.button === Qt.LeftButton) {
+                // 마우스의 글로벌 화면 좌표 가져오기
+                var rootPos = mapToItem(mainWindow.contentItem, mouse.x, mouse.y)
+                var globalX = mainWindow.x + rootPos.x
+                var globalY = mainWindow.y + rootPos.y
+                
+                // Aero Snap 처리 (상단/좌/우 가장자리 감지)
+                if (!ScreenTools.isMobile && mainWindow.visibility !== Window.FullScreen) {
+                    WindowHelper.handleAeroSnap(mainWindow, globalX, globalY)
+                }
+            }
+            _dragStarted = false
         }
     }
-/*
-    Column {
-        anchors.top: parent.top
-        anchors.right: parent.right
-        anchors.margins: 10
-        spacing: 8
-        z:9999
-
-        Text {
-            text: "Debug JSON Input"
-            color: "white"
-            font.pixelSize: 14
-        }
-        TextArea {
-            id: debugJsonInput
-            width: 500
-            height: 170
-            wrapMode: TextEdit.WrapAnywhere
-            placeholderText: "{\"type\":\"list\",\"data\":[...]}"
-        }
-
-        Row {
-            spacing: 8
-            Button {
-                text: "Inject"
-                onClicked: droneManager.injectJsonText(debugJsonInput.text)
-            }
-            Button {
-                text: "Clear"
-                onClicked: debugJsonInput.text = ""
-            }
-        }
-    }*/
-
-=======
->>>>>>> f9dfdbd69 (commit (clean))
 
     footer: LogReplayStatusBar {
         visible: QGroundControl.settingsManager.flyViewSettings.showLogReplayStatusBar.rawValue
@@ -625,7 +648,6 @@ ApplicationWindow {
                             }
                         }
 
-                        // 26.01.30 test: Custom Plan 뷰 진입 (좌측 droneStatus만 표시)
                         SubMenuButton {
                             height:             toolSelectDialog._toolButtonHeight
                             Layout.fillWidth:   true

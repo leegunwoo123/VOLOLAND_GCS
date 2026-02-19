@@ -134,7 +134,6 @@ FlightMap {
             mapBoundary.visible = true
             // Some times, for whatever reason, the bounding box is correct (around ETH for instance), but the rectangle is drawn across the planet.
             // When that happens, the "_map.fitViewportToMapItems()" below makes the map to zoom to the entire earth.
-            //console.log("Map boundary: " + mapBoundary.topLeft + " " + mapBoundary.bottomRight)
             _map.fitViewportToVisibleMapItems()
         }
         infoViewComponent.createObject(_map)
@@ -539,11 +538,8 @@ FlightMap {
                                 }
                                 Component.onCompleted: {
                                     var index = mapCombo.find(mapType)
-                                    if (index === -1) {
-                                        console.warn("Active map name not in combo", mapType)
-                                    } else {
+                                    if (index !== -1)
                                         mapCombo.currentIndex = index
-                                    }
                                 }
                             }
                             QGCCheckBox {

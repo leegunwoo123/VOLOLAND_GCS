@@ -137,7 +137,6 @@ Item {
     }
 
     function printScreenStats() {
-        console.log('ScreenTools: Screen.width: ' + Screen.width + ' Screen.height: ' + Screen.height + ' Screen.pixelDensity: ' + Screen.pixelDensity)
     }
 
     /// Returns the current x position of the mouse in global screen coordinates.

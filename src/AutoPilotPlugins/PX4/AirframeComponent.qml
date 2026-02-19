@@ -197,10 +197,8 @@ SetupPage {
                                 visible:        false
 
                                 onCheckedChanged: {
-                                    if (checked && combo.currentIndex !== -1) {
-                                        console.log("check box change", combo.currentIndex)
+                                    if (checked && combo.currentIndex !== -1)
                                         controller.autostartId = modelData.airframes[combo.currentIndex].autostartId
-                                    }
                                 }
                             }
 
@@ -222,8 +220,7 @@ SetupPage {
 
                                 onActivated: (index) => {
                                     applyButton.primary = true
-                                    airframeCheckBox.checked = true;
-                                    console.log("combo change", index)
+                                    airframeCheckBox.checked = true
                                     controller.autostartId = modelData.airframes[index].autostartId
                                 }
                             }

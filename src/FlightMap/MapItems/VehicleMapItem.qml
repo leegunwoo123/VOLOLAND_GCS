@@ -82,7 +82,6 @@ MapQuickItem {
 
                     function paintHeading() {
                         var context = getContext("2d")
-                        // console.log("painting heading " + object.param1Raw + " " + opacity + " " + visible + " " + _index)
                         context.clearRect(0, 0, vehicleIcon.width, vehicleIcon.height);
 
                         var centerX = canvas.width / 2;

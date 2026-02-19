@@ -91,7 +91,6 @@ Item {
 
     /// Slider values should be in converted app units.
     function setupSlider(sliderType, minValue, maxValue, currentValue, displayText) {
-        //console.log("setupSlider: sliderType: ", sliderType, " minValue: ", minValue, " maxValue: ", maxValue, " currentValue: ", currentValue, " displayText: ", displayText)
         _sliderType = sliderType
         _sliderMinVal = minValue
         _sliderMaxVal = maxValue

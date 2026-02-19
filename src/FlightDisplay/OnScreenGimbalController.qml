@@ -48,12 +48,7 @@ Item {
         if (rootItem.gimbalAvailable) {
             var xCoocked =  ( (screenX / parent.width)  * 2) - 1
             var yCoocked = -( (screenY / parent.height) * 2) + 1
-            // console.log("X global: " + x + " Y global: " + y)
-            // console.log("X coocked: " + xCoocked + " Y coocked: " + yCoocked)
             gimbalController.gimbalOnScreenControl(xCoocked, yCoocked, true, false, false)
-        } else {
-            // We should never be here
-            console.log("gimbal not available")
         }
     }
 
@@ -94,8 +89,6 @@ Item {
                 xCoocked -= screenXrateInitCoocked
                 yCoocked -= screenYrateInitCoocked
                 gimbalController.gimbalOnScreenControl(xCoocked, yCoocked, false, true, true)
-            } else {
-                console.log("gimbal not available")
             }
         }
     }

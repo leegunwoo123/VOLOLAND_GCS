@@ -215,5 +215,10 @@
         <file alias="ZoomMinus.svg">src/FlightMap/Images/ZoomMinus.svg</file>
         <file alias="ZoomPlus.svg">src/FlightMap/Images/ZoomPlus.svg</file>
         <file alias="Viewer3D/City3DMapIcon.svg">src/Viewer3D/Images/city_3d_map_icon.svg</file>
+        <file alias="ServerDisconnected.png">src/UI/toolbar/Images/ServerDisconnected.png</file>
+        <file alias="ServerConnecting.png">src/UI/toolbar/Images/ServerConnecting.png</file>
+        <file alias="ServerConnected.png">src/UI/toolbar/Images/ServerConnected.png</file>
+        <!-- UserInfo.png: 수정 후 클린 빌드 또는 이 줄 저장 시 리소스 재포함 -->
+        <file alias="UserInfo.png">src/UI/toolbar/Images/UserInfo.png</file>
     </qresource>
 </RCC>

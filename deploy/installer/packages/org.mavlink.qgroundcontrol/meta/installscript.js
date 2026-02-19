@@ -8,7 +8,6 @@ Component.prototype.createOperations = function()
     try {
         component.createOperations();
     } catch (e) {
-        console.log(e);
     }
 
     if (systemInfo.productType === "windows") {

@@ -42,6 +42,7 @@
 #include "ToolStripAction.h"
 #include "ToolStripActionList.h"
 #include "CustomMissionReorderHelper.h"
+#include "WindowHelper.h"
 #include "VideoManager.h"
 #include "MultiVehicleManager.h"
 #include "QGCLoggingCategory.h"
@@ -84,6 +85,11 @@ static QObject* customMissionReorderHelperSingletonFactory(QQmlEngine*, QJSEngin
     return new CustomMissionReorderHelper();
 }
 
+static QObject* windowHelperSingletonFactory(QQmlEngine*, QJSEngine*)
+{
+    return new WindowHelper();
+}
+
 void QGroundControlQmlGlobal::registerQmlTypes()
 {
     qmlRegisterUncreatableType<FactValueGrid>           ("QGroundControl.Templates",             1, 0, "FactValueGrid",       "Reference only");
@@ -112,6 +118,7 @@ void QGroundControlQmlGlobal::registerQmlTypes()
     qmlRegisterSingletonType<QGroundControlQmlGlobal>   ("QGroundControl",                       1, 0, "QGroundControl",         qgroundcontrolQmlGlobalSingletonFactory);
     qmlRegisterSingletonType<ScreenToolsController>     ("QGroundControl.ScreenToolsController", 1, 0, "ScreenToolsController",  screenToolsControllerSingletonFactory);
     qmlRegisterSingletonType<CustomMissionReorderHelper>("QGroundControl",                       1, 0, "CustomMissionReorderHelper", customMissionReorderHelperSingletonFactory);
+    qmlRegisterSingletonType<WindowHelper>("QGroundControl",                       1, 0, "WindowHelper", windowHelperSingletonFactory);
 }
 
 QGroundControlQmlGlobal::QGroundControlQmlGlobal(QObject *parent)

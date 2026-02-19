@@ -23,16 +23,6 @@ void CustomMissionReorderHelper::moveVisualItem(QObject* missionController, int 
     QmlObjectListModel* model = mc ? mc->visualItems() : nullptr;
     if (!mc || !model || from < 0 || from >= model->count() || to < 0 || to >= model->count() || from == to)
         return;
-<<<<<<< HEAD
-    QObject* item = model->get(from);
-    if (!item)
-        return;
-    model->removeAt(from);
-    const int insertIndex = (to > from) ? (to - 1) : to;
-    model->insert(insertIndex, item);
-    mc->recalcSequenceNumbers();
-    auto* moved = qobject_cast<VisualMissionItem*>(model->get(insertIndex));
-=======
     // 스왑: from 위치 항목과 to 위치 항목을 맞바꿈 (예: 1-2-3-4에서 2↔4 드래그 → 1-4-3-2)
     const int lo = qMin(from, to);
     const int hi = qMax(from, to);
@@ -46,7 +36,6 @@ void CustomMissionReorderHelper::moveVisualItem(QObject* missionController, int 
     model->insert(hi, itemLo);
     mc->recalcSequenceNumbers();
     auto* moved = qobject_cast<VisualMissionItem*>(model->get(to));
->>>>>>> f9dfdbd69 (commit (clean))
     if (moved)
         mc->setCurrentPlanViewSeqNum(moved->sequenceNumber(), true);
 }

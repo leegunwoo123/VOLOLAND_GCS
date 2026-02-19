@@ -18,7 +18,6 @@ RowLayout {
     spacing: _colSpacing
 
     function saveSettings() {
-        console.log(logField.text)
         subEditConfig.filename = logField.text
     }
 

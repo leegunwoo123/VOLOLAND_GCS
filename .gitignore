@@ -93,8 +93,4 @@ docs/.vitepress/cache/
 docs/.vitepress/dist/
 
 CMakeUserPresets.json
-<<<<<<< HEAD
 cpm_modules
-=======
-cpm_modules
->>>>>>> f9dfdbd69 (commit (clean))

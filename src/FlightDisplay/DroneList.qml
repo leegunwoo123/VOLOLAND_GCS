@@ -482,7 +482,7 @@ Item {
             anchors.bottomMargin: 10
             spacing: 10
             clip: true
-
+/*
             Rectangle {
                 id: selectedBar_border
                 Layout.alignment: Qt.AlignHCenter | Qt.AlignTop
@@ -514,27 +514,24 @@ Item {
                               : ("선택된 장비: " + droneList.selectedDevice)
                     }
                 }
-            }
 
+            }
+*/
             RowLayout {
                 Layout.fillWidth: true
                 Layout.leftMargin: 10
                 Layout.rightMargin: 10
                 spacing: 10
 
-                Rectangle {
-                    id: serverConnectionStatus
-                    Layout.leftMargin: 10
-                    Layout.alignment: Qt.AlignTop
-                    Layout.preferredWidth: 20
-                    Layout.preferredHeight: 20
-                    color: {
-                        if (backend && backend.status === 0) return "#44ff44"
-                        if (backend && backend.status === 1) return "#ffb300"
-                        return "#ff4444"
+                // 서버 연결 상태는 상단바(CustomToolbar)로 이동. mainWindow.serverConnectionStatus와 동기화
+                Binding {
+                    target: mainWindow
+                    property: "serverConnectionStatus"
+                    value: {
+                        if (backend && backend.status === 0) return 0
+                        if (backend && backend.status === 1) return 1
+                        return 2
                     }
-                    radius: width /2
-                    clip: true
                 }
 
                 Item { Layout.fillWidth: true }

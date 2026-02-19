@@ -37,7 +37,6 @@ Item {
                             map.addMapItem(_customObject)
                         }
                     } else {
-                        console.log("Component creation failed", component.errorString())
                     }
                 }
             }

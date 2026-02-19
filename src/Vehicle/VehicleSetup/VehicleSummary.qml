@@ -133,7 +133,6 @@ Rectangle {
                             }
 
                             onClicked : {
-                                //console.log(modelData.setupSource)
                                 if (modelData.setupSource !== "") {
                                     setupView.showVehicleComponentPanel(modelData)
                                 }

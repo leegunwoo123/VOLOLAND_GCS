@@ -1,10 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Dialogs
-<<<<<<< HEAD
-=======
 import QtQml
->>>>>>> f9dfdbd69 (commit (clean))
 import QtLocation
 import QtPositioning
 import QtQuick.Layouts
@@ -26,31 +23,29 @@ import QGroundControl.UTMSP
 Item {
     id: root
 
-<<<<<<< HEAD
-=======
     Rectangle {
         anchors.fill: parent
         z: -1
         color: "#1a1a1a"
     }
 
->>>>>>> f9dfdbd69 (commit (clean))
     property var    planMasterController
     property bool   showToolbar: true
     property string deviceName: ""
     property real   droneStatusWidth: 0
-<<<<<<< HEAD
-=======
+    /// 좌측 드론 상태 패널이 접혀 있는지 (MainWindow에서 leftPanelVisible과 동기화). 펼치기 버튼 표시용
+    property bool   leftPanelCollapsed: false
     property real   _lastMouseX: 0
->>>>>>> f9dfdbd69 (commit (clean))
     property var    _planMasterController:              planMasterController
     property var    _missionController:                 _planMasterController ? _planMasterController.missionController : null
     property var    _geoFenceController:                _planMasterController ? _planMasterController.geoFenceController : null
     property var    _rallyPointController:              _planMasterController ? _planMasterController.rallyPointController : null
-<<<<<<< HEAD
-=======
     property var    _appSettings:                      QGroundControl.settingsManager.appSettings
->>>>>>> f9dfdbd69 (commit (clean))
+
+    /// CustomFlyView station status와 동일한 너비 규칙 (값만 맞춤, 전달받지 않음)
+    readonly property real _sidebarWidth:               (typeof mainWindow !== "undefined" ? mainWindow.width * 0.20 : 350)
+    readonly property real _sidebarMaxWidth:            350 * 1.25
+    readonly property real _missionPanelPreferredWidth: Math.min(_sidebarWidth, _sidebarMaxWidth)
 
     readonly property int   _decimalPlaces:              8
     readonly property real  _margin:                     ScreenTools.defaultFontPixelHeight * 0.5
@@ -68,12 +63,9 @@ Item {
     readonly property int   _layerGeoFence:             2
     readonly property int   _layerRallyPoints:           3
     readonly property int   _layerUTMSP:                 4
-<<<<<<< HEAD
-=======
     property bool           _waypointAddMode:            false
     /// 로컬/서버 목록 또는 파일 다이얼로그에서 선택한 파일 이름 (단일 소스)
     property string         selectedPlanPath:            ""
->>>>>>> f9dfdbd69 (commit (clean))
 
     function mapCenter() {
         if (!editorMap) return QtPositioning.coordinate()
@@ -93,14 +85,11 @@ Item {
         var nextIndex = _missionController.currentPlanViewVIIndex + 1
         _missionController.insertTakeoffItem(mapCenter(), nextIndex, true)
     }
-<<<<<<< HEAD
-=======
     function insertLandItemAfterCurrent() {
         if (!_missionController) return
         var nextIndex = _missionController.currentPlanViewVIIndex + 1
         _missionController.insertLandItem(mapCenter(), nextIndex, true)
     }
->>>>>>> f9dfdbd69 (commit (clean))
     function selectNextNotReady() {
         if (!_missionController || !_missionController.visualItems) return
         for (var i = 0; i < _missionController.visualItems.count; i++) {
@@ -112,8 +101,6 @@ Item {
         }
     }
 
-<<<<<<< HEAD
-=======
     /// QGC처럼 계획 파일 선택 창을 띄워 불러오기 (로컬 저장소 "목록 열기"에서 사용)
     function openPlanFileSelection() {
         if (!_planMasterController) return
@@ -216,7 +203,6 @@ Item {
         }
     }
 
->>>>>>> f9dfdbd69 (commit (clean))
     CustomPlanViewToolBar {
         id:                     planToolBar
         visible:                root.showToolbar
@@ -235,8 +221,6 @@ Item {
                 _planMasterController.removeAll()
             _ensurePlanViewSeqNum()
             initSeqNumTimer.start()
-<<<<<<< HEAD
-=======
             // Fly 뷰 → Custom Plan 전환 시 editorMap이 FlyViewMap과 동일한 중심/줌을 쓰도록 강제 동기화 (맵 튐/다른 맵 느낌 방지)
             if (editorMap) {
                 editorMap.center = QGroundControl.flightMapPosition
@@ -254,7 +238,6 @@ Item {
                 editorMap.center = QGroundControl.flightMapPosition
                 editorMap.zoomLevel = QGroundControl.flightMapZoom
             }
->>>>>>> f9dfdbd69 (commit (clean))
         }
     }
     Timer {
@@ -264,59 +247,10 @@ Item {
         onTriggered: _ensurePlanViewSeqNum()
     }
     Connections {
-        target: _planMasterController
-        function onControllerVehicleChanged() { _ensurePlanViewSeqNum() }
-    }
-    Connections {
         target: root
         function on_PlanMasterControllerChanged() { _ensurePlanViewSeqNum() }
     }
 
-<<<<<<< HEAD
-    // missionEditor 영역: 지도(좌) + Takeoff/Waypoint 스트립 + 우측 편집 패널은 missionPanel 내 missionEditor에 구성
-    Item {
-        id: mapPanel
-        anchors.left: parent.left
-        anchors.right: missionPanel.left
-        anchors.top: root.showToolbar ? planToolBar.bottom : parent.top
-        anchors.bottom: parent.bottom
-        visible: _planMasterController != null
-
-        ToolStripActionList {
-            id: customToolStripActionList
-            model: [
-                ToolStripAction {
-                    text: qsTr("Takeoff")
-                    iconSource: "/res/takeoff.svg"
-                    enabled: _missionController && _missionController.isInsertTakeoffValid
-                    visible: (_editingLayer == _layerMission || _editingLayer == _layerUTMSP) && _planMasterController && (!_planMasterController.controllerVehicle || !_planMasterController.controllerVehicle.rover)
-                    onTriggered: {
-                        addWaypointRallyPointAction.checked = false
-                        insertTakeoffItemAfterCurrent()
-                        _triggerSubmit = true
-                    }
-                },
-                ToolStripAction {
-                    id: addWaypointRallyPointAction
-                    text: _editingLayer == _layerRallyPoints ? qsTr("Rally Point") : qsTr("Waypoint")
-                    iconSource: "/qmlimages/MapAddMission.svg"
-                    enabled: _editingLayer == _layerRallyPoints ? true : (_missionController && _missionController.flyThroughCommandsAllowed)
-                    visible: _editingLayer == _layerRallyPoints || _editingLayer == _layerMission || _editingLayer == _layerUTMSP
-                    checkable: true
-                }
-            ]
-        }
-        ToolStrip {
-            id: customToolStrip
-            anchors.margins: _toolsMargin
-            anchors.left: parent.left
-            anchors.top: parent.top
-            z: QGroundControl.zOrderWidgets
-            maxHeight: parent.height - (customToolStrip.y || 0)
-            model: customToolStripActionList.model
-        }
-
-=======
     Item {
         id: contentRow
         anchors.left: parent.left
@@ -341,7 +275,6 @@ Item {
                 visible: _planMasterController !== null
                 enabled: root._lastMouseX < root._mapAreaRightEdge
 
->>>>>>> f9dfdbd69 (commit (clean))
         FlightMap {
             id: editorMap
             anchors.fill: parent
@@ -352,11 +285,7 @@ Item {
             zoomLevel: QGroundControl.flightMapZoom
             center: QGroundControl.flightMapPosition
             property rect centerViewport: Qt.rect(_leftToolWidth + _margin, _margin, Math.max(0, width - _leftToolWidth - _margin * 2), Math.max(0, height - _margin * 2))
-<<<<<<< HEAD
-            property real _leftToolWidth: (customToolStrip && customToolStrip.width) ? (customToolStrip.x + customToolStrip.width) : 0
-=======
             property real _leftToolWidth: 0
->>>>>>> f9dfdbd69 (commit (clean))
             property real _nonInteractiveOpacity: 0.5
             Component.onCompleted: editorMap.center = QGroundControl.flightMapPosition
             QGCMapPalette { id: mapPal; lightColors: editorMap.isSatelliteMap }
@@ -371,15 +300,6 @@ Item {
                 if (_utmspEnabled) QGroundControl.utmspManager.utmspVehicle.updateLastCoordinates(coordinate.latitude, coordinate.longitude)
                 switch (_editingLayer) {
                 case _layerMission:
-<<<<<<< HEAD
-                    if (addWaypointRallyPointAction.checked) insertSimpleItemAfterCurrent(coordinate)
-                    break
-                case _layerRallyPoints:
-                    if (_rallyPointController && _rallyPointController.supported && addWaypointRallyPointAction.checked) _rallyPointController.addPoint(coordinate)
-                    break
-                case _layerUTMSP:
-                    if (addWaypointRallyPointAction.checked) insertSimpleItemAfterCurrent(coordinate)
-=======
                     if (root._waypointAddMode) insertSimpleItemAfterCurrent(coordinate)
                     break
                 case _layerRallyPoints:
@@ -387,7 +307,6 @@ Item {
                     break
                 case _layerUTMSP:
                     if (root._waypointAddMode) insertSimpleItemAfterCurrent(coordinate)
->>>>>>> f9dfdbd69 (commit (clean))
                     break
                 }
             }
@@ -501,23 +420,13 @@ Item {
             usePlannedHomePosition: true
             planMasterController: _planMasterController
         }
-<<<<<<< HEAD
-    }
-
-    Item {
-        id: missionPanel
-        width: root.droneStatusWidth > 0 ? root.droneStatusWidth : parent.width
-        anchors.right: parent.right
-        anchors.top: root.showToolbar ? planToolBar.bottom : parent.top
-        anchors.bottom: parent.bottom
-=======
             }
 
             Item {
                 id: missionPanel
-                Layout.preferredWidth: root.droneStatusWidth > 0 ? root.droneStatusWidth : 350
-                Layout.minimumWidth:  root.droneStatusWidth > 0 ? root.droneStatusWidth : 350
-                Layout.maximumWidth:  root.droneStatusWidth > 0 ? root.droneStatusWidth : 350
+                Layout.preferredWidth: root._missionPanelPreferredWidth
+                Layout.minimumWidth:  200
+                Layout.maximumWidth:  root._sidebarMaxWidth
                 Layout.fillHeight: true
                 Layout.leftMargin: 2
                 Layout.topMargin: 2
@@ -542,7 +451,6 @@ Item {
             onReleased: (mouse) => mouse.accepted = true
             onPositionChanged: (mouse) => mouse.accepted = true
         }
->>>>>>> f9dfdbd69 (commit (clean))
 
         Rectangle {
             id: missionPanelBackground
@@ -557,10 +465,6 @@ Item {
                 anchors.margins: 10
                 spacing: 15
 
-<<<<<<< HEAD
-                // 1. 저장소 선택 버튼 행
-=======
->>>>>>> f9dfdbd69 (commit (clean))
                 RowLayout {
                     id: storageButtom
                     Layout.fillWidth: true
@@ -618,12 +522,7 @@ Item {
 
                     Text {
                         id: statusText
-<<<<<<< HEAD
-                        property string selectedPath: ""
-                        text: missionPanelBackground.pathListVisible ? qsTr("닫기 ▲") : (selectedPath === "" ? qsTr("목록 열기 ▼") : selectedPath + " ▼")
-=======
                         text: missionPanelBackground.pathListVisible ? qsTr("닫기 ▲") : (serverBtn.checked ? qsTr("목록 요청 ▼") : qsTr("목록 열기 ▼"))
->>>>>>> f9dfdbd69 (commit (clean))
                         color: "#ffffff"
                         font.pixelSize: 13
                         font.bold: true
@@ -631,9 +530,6 @@ Item {
                         MouseArea {
                             anchors.fill: parent
                             cursorShape: Qt.PointingHandCursor
-<<<<<<< HEAD
-                            onClicked: missionPanelBackground.pathListVisible = !missionPanelBackground.pathListVisible
-=======
                             onClicked: {
                                 if (missionPanelBackground.pathListVisible) {
                                     missionPanelBackground.pathListVisible = false
@@ -680,7 +576,6 @@ Item {
                                 root.renameSelectedPlan(root.selectedPlanPath, newName)
                                 root.selectedPlanPath = newName
                             }
->>>>>>> f9dfdbd69 (commit (clean))
                         }
                     }
                 }
@@ -694,9 +589,6 @@ Item {
                         id: saveBtn
                         text: qsTr("저장")
                         Layout.fillWidth: true
-<<<<<<< HEAD
-                    }
-=======
                         onClicked: {
                             if (localBtn.checked)
                                 root.openPlanFileSave()
@@ -705,19 +597,10 @@ Item {
                         }
                     }
 
->>>>>>> f9dfdbd69 (commit (clean))
                     Button {
                         id: loadBtn
                         text: qsTr("불러오기")
                         Layout.fillWidth: true
-<<<<<<< HEAD
-                        enabled: statusText.selectedPath !== ""
-                    }
-                    Button {
-                        id: deleteBtn
-                        text: qsTr("삭제")
-                        Layout.fillWidth: true
-=======
                         enabled: !localBtn.checked && root.selectedPlanPath !== ""
                         onClicked: {
                             if (serverBtn.checked)
@@ -735,7 +618,6 @@ Item {
                             else
                                 root.requestDeletePlanFromServer()
                         }
->>>>>>> f9dfdbd69 (commit (clean))
                     }
                 }
 
@@ -764,8 +646,6 @@ Item {
                     spacing: 8
 
                     Button{
-<<<<<<< HEAD
-=======
                         id: uploadBtn
                         text: qsTr("업로드")
                         Layout.fillWidth: true
@@ -773,7 +653,6 @@ Item {
                     }
 
                     Button{
->>>>>>> f9dfdbd69 (commit (clean))
                         id: deviceLoadBtn
                         text: qsTr("경로 불러오기")
                         Layout.fillWidth: true
@@ -789,10 +668,6 @@ Item {
 
                 }
 
-<<<<<<< HEAD
-                // missionEditor: Takeoff/Waypoint 버튼 + 우측 편집 패널(탭·미션/펜스/랠리/UTMSP). 지형 라이선스 미포함.
-=======
->>>>>>> f9dfdbd69 (commit (clean))
                 ColumnLayout {
                     id: missionEditor
                     Layout.fillWidth: true
@@ -809,11 +684,7 @@ Item {
                             enabled: _missionController && _missionController.isInsertTakeoffValid
                             visible: (_editingLayer == _layerMission || _editingLayer == _layerUTMSP) && _planMasterController && (!_planMasterController.controllerVehicle || !_planMasterController.controllerVehicle.rover)
                             onClicked: {
-<<<<<<< HEAD
-                                if (addWaypointRallyPointAction) addWaypointRallyPointAction.checked = false
-=======
                                 root._waypointAddMode = false
->>>>>>> f9dfdbd69 (commit (clean))
                                 insertTakeoffItemAfterCurrent()
                                 _triggerSubmit = true
                             }
@@ -824,10 +695,6 @@ Item {
                             checkable: true
                             enabled: _editingLayer == _layerRallyPoints ? true : (_missionController && _missionController.flyThroughCommandsAllowed)
                             visible: _editingLayer == _layerRallyPoints || _editingLayer == _layerMission || _editingLayer == _layerUTMSP
-<<<<<<< HEAD
-                            onClicked: { if (addWaypointRallyPointAction) addWaypointRallyPointAction.checked = addWaypointBtn.checked }
-                        }
-=======
                             onClicked: root._waypointAddMode = addWaypointBtn.checked
                         }
 
@@ -852,18 +719,12 @@ Item {
                             onClicked: stationLandPoint.open()
                         }
 
->>>>>>> f9dfdbd69 (commit (clean))
                         Item { Layout.fillWidth: true }
                     }
                     Binding {
                         target: addWaypointBtn
                         property: "checked"
-<<<<<<< HEAD
-                        value: addWaypointRallyPointAction ? addWaypointRallyPointAction.checked : false
-                        when: addWaypointRallyPointAction != null
-=======
                         value: root._waypointAddMode
->>>>>>> f9dfdbd69 (commit (clean))
                     }
 
                     QGCTabBar {
@@ -928,15 +789,8 @@ Item {
                                 anchors.fill: parent
                                 keys: ["mission-item-reorder"]
                                 onEntered: (drag) => {
-<<<<<<< HEAD
                                     if (drag.source && drag.source._dragStartIndex !== undefined && drag.source._dragStartIndex >= 2)
                                         drag.accepted = true
-=======
-                                    var from = drag.source && drag.source._dragStartIndex !== undefined ? drag.source._dragStartIndex : -1
-                                    if (drag.source && drag.source._dragStartIndex !== undefined && drag.source._dragStartIndex >= 2)
-                                        drag.accepted = true
-                                    console.log("[MissionReorder] overlay onEntered fromIdx=" + from + " accepted=" + drag.accepted)
->>>>>>> f9dfdbd69 (commit (clean))
                                 }
                                 onDropped: (drag) => {
                                     if (!drag.source || !_missionController || typeof CustomMissionReorderHelper === "undefined" || !CustomMissionReorderHelper.moveVisualItem)
@@ -954,43 +808,20 @@ Item {
                                     }
                                     var p = missionReorderOverlay.mapToItem(missionItemEditorListView.contentItem, drag.x, drag.y)
                                     var toIdx = missionItemEditorListView.indexAt(p.x, p.y)
-<<<<<<< HEAD
-                                    if (fromIdx >= 2 && toIdx >= 2 && fromIdx !== toIdx) {
-                                        CustomMissionReorderHelper.moveVisualItem(_missionController, fromIdx, toIdx)
-                                        if (missionItemEditorListView.forceLayout)
-                                            Qt.callLater(missionItemEditorListView.forceLayout)
-                                    }
-=======
-                                    console.log("[MissionReorder] overlay onDropped drag.x=" + drag.x + " drag.y=" + drag.y + " p.x=" + p.x + " p.y=" + p.y + " fromIdx=" + fromIdx + " toIdx(indexAt)=" + toIdx)
-                                    if (toIdx < 2 || fromIdx < 2 || fromIdx === toIdx) {
-                                        console.log("[MissionReorder] overlay SKIP toIdx<2=" + (toIdx < 2) + " fromIdx===toIdx=" + (fromIdx === toIdx))
+                                    if (toIdx < 2 || fromIdx < 2 || fromIdx === toIdx)
                                         return
-                                    }
                                     var item = missionItemEditorListView.itemAtIndex(toIdx)
-                                    if (!item) {
-                                        console.log("[MissionReorder] overlay SKIP item is null for toIdx=" + toIdx)
+                                    if (!item)
                                         return
-                                    }
                                     var inRow = p.x >= item.x && p.x < item.x + item.width && p.y >= item.y && p.y < item.y + item.height
-                                    console.log("[MissionReorder] overlay item bounds x=" + item.x + " y=" + item.y + " w=" + item.width + " h=" + item.height + " inRow=" + inRow)
-                                    if (!inRow) {
-                                        console.log("[MissionReorder] overlay SKIP not inRow")
+                                    if (!inRow)
                                         return
-                                    }
-                                    console.log("[MissionReorder] overlay CALL moveVisualItem(" + fromIdx + "," + toIdx + ")")
                                     CustomMissionReorderHelper.moveVisualItem(_missionController, fromIdx, toIdx)
                                     if (missionItemEditorListView.forceLayout)
                                         Qt.callLater(missionItemEditorListView.forceLayout)
->>>>>>> f9dfdbd69 (commit (clean))
                                 }
                             }
-                            Item {
-                                id: reorderDragTargetRef
-                                width: 1
-                                height: 1
-                            }
                         }
-                        Component.onCompleted: missionItemEditorListView.reorderDragTarget = reorderDragTargetRef
                         GeoFenceEditor {
                             anchors.fill: parent
                             myGeoFenceController: _geoFenceController
@@ -1038,8 +869,6 @@ Item {
             }
 
             Popup {
-<<<<<<< HEAD
-=======
                 id: stationLandPoint
                 anchors.centerIn: Overlay.overlay
                 modal: true
@@ -1058,7 +887,7 @@ Item {
 
                     radius: 4
                     color: qgcPal.windowShade
-                    border.color: qgcPal.separator
+                    border.color: qgcPal.windowShadeLight
                     border.width: 1
 
                     property int pad: ScreenTools.defaultFontPixelHeight * 0.8
@@ -1093,7 +922,7 @@ Item {
                                 Layout.fillWidth: true
                                 radius: 2
                                 color: qgcPal.window
-                                border.color: qgcPal.separator
+                                border.color: qgcPal.windowShadeLight
                                 border.width: 1
                                 implicitHeight: ScreenTools.defaultFontPixelHeight * 2.6
 
@@ -1127,17 +956,11 @@ Item {
             }
 
             Popup {
->>>>>>> f9dfdbd69 (commit (clean))
                 id: pathContainer
                 visible: missionPanelBackground.pathListVisible
                 parent: pathHeader
                 x: 0
                 y: pathHeader.height + 5
-<<<<<<< HEAD
-                // x: pathHeader.mapToItem(missionPanelBackground, 0, 0).x
-                // y: pathHeader.mapToItem(missionPanelBackground, 0, pathHeader.height).y + 5
-=======
->>>>>>> f9dfdbd69 (commit (clean))
                 width: pathHeader.width
                 height: 150
                 padding: 0
@@ -1147,38 +970,13 @@ Item {
                     radius: 4
                     border.color: "#444444"
                 }
-<<<<<<< HEAD
-                contentItem: ScrollView {
-                    ScrollBar.vertical.policy: ScrollBar.AsNeeded
-                    contentWidth: pathListView.width
-                    contentHeight: pathListView.contentHeight
-
-                    ListView {
-                        id: pathListView
-                        model: localBtn.checked ? ["Local_Path_01", "Local_Path_02", "Local_Path_03", "Local_Path_04"]
-                                                : ["Server_Path_A", "Server_Path_B", "Server_Path_C"]
-                        delegate: ItemDelegate {
-                            width: pathContainer.width - 20
-                            text: modelData
-
-                            contentItem: Text {
-                                text: parent.text
-                                color: parent.down ? "#aaaaaa" : "#ffffff"
-                                verticalAlignment: Text.AlignVCenter
-                                leftPadding: 10
-                            }
-
-                            onClicked: {
-                                statusText.selectedPath = modelData
-                                missionPanelBackground.pathListVisible = false
-=======
                 contentItem: Item {
                     width: pathContainer.width
                     height: pathContainer.height
                     // 서버 저장소용 목록만 표시 (로컬은 목록 열기 시 파일 다이얼로그만 사용)
                     Text {
                         anchors.centerIn: parent
-                        visible: root.serverPlanListModel.count === 0
+                        visible: serverPlanListModel && serverPlanListModel.count === 0
                         text: qsTr("서버 연결 후 '목록 요청'을 눌러 주세요.")
                         color: "#aaaaaa"
                         font.pixelSize: 12
@@ -1186,13 +984,13 @@ Item {
                     }
                     ScrollView {
                         anchors.fill: parent
-                        visible: root.serverPlanListModel.count > 0
+                        visible: serverPlanListModel && serverPlanListModel.count > 0
                         ScrollBar.vertical.policy: ScrollBar.AsNeeded
                         contentWidth: serverPathListView.width
                         contentHeight: serverPathListView.contentHeight
                         ListView {
                             id: serverPathListView
-                            model: root.serverPlanListModel
+                            model: serverPlanListModel
                             delegate: ItemDelegate {
                                 width: pathContainer.width - 20
                                 text: (typeof model.name !== "undefined") ? model.name : ""
@@ -1207,7 +1005,6 @@ Item {
                                     missionPanelBackground.pathListVisible = false
                                     // TODO: 서버에서 선택한 계획 불러오기
                                 }
->>>>>>> f9dfdbd69 (commit (clean))
                             }
                         }
                     }
@@ -1216,8 +1013,6 @@ Item {
 
             property bool pathListVisible: false
         }
-<<<<<<< HEAD
-=======
             }
         }
     }
@@ -1234,17 +1029,43 @@ Item {
         onPositionChanged: (mouse) => { root._lastMouseX = mouse.x; mouse.accepted = (mouse.x >= root._mapAreaRightEdge) }
         onPressed: (mouse) => {
             root._lastMouseX = mouse.x
-            mouse.accepted = (mouse.x >= root._mapAreaRightEdge && mouse.y < root._missionPanelTopStripHeight)
+            var inExpandZone = (root.leftPanelCollapsed && mouse.x < 32 && mouse.y < 32)
+            mouse.accepted = !inExpandZone && (mouse.x >= root._mapAreaRightEdge && mouse.y < root._missionPanelTopStripHeight)
         }
         onReleased: (mouse) => {
             root._lastMouseX = mouse.x
-            mouse.accepted = (mouse.x >= root._mapAreaRightEdge && mouse.y < root._missionPanelTopStripHeight)
+            var inExpandZone = (root.leftPanelCollapsed && mouse.x < 32 && mouse.y < 32)
+            mouse.accepted = !inExpandZone && (mouse.x >= root._mapAreaRightEdge && mouse.y < root._missionPanelTopStripHeight)
         }
 
         onWheel: (wheel) => {
             root._lastMouseX = wheel.x
             wheel.accepted = false
         }
->>>>>>> f9dfdbd69 (commit (clean))
+    }
+
+    // droneStatus 접었을 때만: CustomFlyView와 동일 위치(좌상단 4px 마진), 배경 없음. 클릭 시 펼치기
+    QGCMouseArea {
+        anchors.left: parent.left
+        anchors.top: contentRow.top
+        anchors.leftMargin: 4
+        anchors.topMargin: 4
+        width: 24
+        height: 24
+        visible: root.leftPanelCollapsed
+        z: 10001
+        preventStealing: true
+        onPressed: (mouse) => mouse.accepted = true
+        onReleased: (mouse) => mouse.accepted = true
+        onClicked: {
+            if (typeof mainWindow !== "undefined" && mainWindow.expandFlyViewLeftPanel)
+                mainWindow.expandFlyViewLeftPanel()
+        }
+        Text {
+            anchors.centerIn: parent
+            text: "▶"
+            color: "#ffffff"
+            font.pixelSize: 14
+        }
     }
 }

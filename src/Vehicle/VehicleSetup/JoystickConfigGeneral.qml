@@ -83,11 +83,8 @@ Item {
                 onActivated: (index) => { joystickManager.activeJoystickName = textAt(index) }
                 Component.onCompleted: {
                     var index = joystickCombo.find(joystickManager.activeJoystickName)
-                    if (index === -1) {
-                        console.warn(qsTr("Active joystick name not in combo"), joystickManager.activeJoystickName)
-                    } else {
+                    if (index !== -1)
                         joystickCombo.currentIndex = index
-                    }
                 }
                 Connections {
                     target: joystickManager

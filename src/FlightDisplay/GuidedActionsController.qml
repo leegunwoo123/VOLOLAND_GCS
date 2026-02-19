@@ -217,9 +217,6 @@ Item {
     }
 
     function _outputState() {
-        if (_isGuidedActionsControllerLogEnabled()) {
-            console.log(qsTr("_activeVehicle(%1) _vehicleArmed(%2) guidedModeSupported(%3) _vehicleFlying(%4) _vehicleWasFlying(%5) _vehicleInRTLMode(%6) pauseVehicleSupported(%7) _vehiclePaused(%8) _flightMode(%9) _missionItemCount(%10) roiSupported(%11) orbitSupported(%12) _missionActive(%13) _hideROI(%14) _hideOrbit(%15)").arg(_activeVehicle ? 1 : 0).arg(_vehicleArmed ? 1 : 0).arg(__guidedModeSupported ? 1 : 0).arg(_vehicleFlying ? 1 : 0).arg(_vehicleWasFlying ? 1 : 0).arg(_vehicleInRTLMode ? 1 : 0).arg(__pauseVehicleSupported ? 1 : 0).arg(_vehiclePaused ? 1 : 0).arg(_flightMode).arg(_missionItemCount).arg(__roiSupported).arg(__orbitSupported).arg(_missionActive).arg(_hideROI).arg(_hideOrbit))
-        }
     }
 
     function setupSlider(actionCode) {
@@ -245,8 +242,6 @@ Item {
                     _unitsConversion.metersSecondToAppSettingsSpeedUnits(_activeVehicle.maximumHorizontalSpeedMultirotor()).toFixed(1),
                     _unitsConversion.metersSecondToAppSettingsSpeedUnits(_activeVehicle.maximumHorizontalSpeedMultirotor()/2).toFixed(1),
                     qsTr("Speed"))
-            } else {
-                console.error("setupSlider called for inapproproate change speed action", _vehicleInFwdFlight, _activeVehicle.haveMRSpeedLimits)
             }
         } else if (actionCode === actionChangeAlt || actionCode === actionOrbit || actionCode === actionGoto || actionCode === actionPause) {
             guidedValueSlider.setupSlider(
@@ -273,69 +268,25 @@ Item {
     on_MissionActiveChanged:            _outputState()
 
     on_CurrentMissionIndexChanged: {
-        if (_isGuidedActionsControllerLogEnabled()) {
-            console.log("_currentMissionIndex", _currentMissionIndex)
-        }
     }
     on_ResumeMissionIndexChanged: {
-        if (_isGuidedActionsControllerLogEnabled()) {
-            console.log("_resumeMissionIndex", _resumeMissionIndex)
-        }
     }
-    onShowResumeMissionChanged: {
-        if (_isGuidedActionsControllerLogEnabled()) {
-            console.log("showResumeMission", showResumeMission)
-        }
-        _outputState()
-    }
+    onShowResumeMissionChanged: _outputState()
     onShowStartMissionChanged: {
-        if (_isGuidedActionsControllerLogEnabled()) {
-            console.log("showStartMission", showStartMission)
-        }
         _outputState()
-        if (showStartMission) {
+        if (showStartMission)
             confirmAction(actionStartMission)
-        }
     }
     onShowContinueMissionChanged: {
-        if (_isGuidedActionsControllerLogEnabled()) {
-            console.log("showContinueMission", showContinueMission)
-        }
         _outputState()
-        if (showContinueMission) {
+        if (showContinueMission)
             confirmAction(actionContinueMission)
-        }
     }
-    onShowRTLChanged: {
-        if (_isGuidedActionsControllerLogEnabled()) {
-            console.log("showRTL", showRTL)
-        }
-        _outputState()
-    }
-    onShowChangeAltChanged: {
-        if (_isGuidedActionsControllerLogEnabled()) {
-            console.log("showChangeAlt", showChangeAlt)
-        }
-        _outputState()
-    }
-    onShowROIChanged: {
-        if (_isGuidedActionsControllerLogEnabled()) {
-            console.log("showROI", showROI)
-        }
-        _outputState()
-    }
-    onShowOrbitChanged: {
-        if (_isGuidedActionsControllerLogEnabled()) {
-            console.log("showOrbit", showOrbit)
-        }
-        _outputState()
-    }
-    onShowGotoLocationChanged: {
-        if (_isGuidedActionsControllerLogEnabled()) {
-            console.log("showGotoLocation", showGotoLocation)
-        }
-        _outputState()
-    }
+    onShowRTLChanged: _outputState()
+    onShowChangeAltChanged: _outputState()
+    onShowROIChanged: _outputState()
+    onShowOrbitChanged: _outputState()
+    onShowGotoLocationChanged: _outputState()
     onShowLandAbortChanged: {
         if (showLandAbort) {
             confirmAction(actionLandAbort)
@@ -588,10 +539,8 @@ Item {
             confirmDialog.message = changeHeadingMessage
             break
         default:
-            if (!customController.customConfirmAction(actionCode, actionData, mapIndicator, confirmDialog)) {
-                console.warn("Unknown actionCode", actionCode)
+            if (!customController.customConfirmAction(actionCode, actionData, mapIndicator, confirmDialog))
                 return
-            }
         }
         confirmDialog.show(showImmediate)
     }
@@ -732,10 +681,8 @@ Item {
             _activeVehicle.guidedModeChangeHeading(actionData)
             break
         default:
-            if (!customController.customExecuteAction(actionCode, actionData, sliderOutputValue, optionChecked)) {
-                console.warn(qsTr("Internal error: unknown actionCode"), actionCode)
+            if (!customController.customExecuteAction(actionCode, actionData, sliderOutputValue, optionChecked))
                 return
-            }
             break
         }
     }

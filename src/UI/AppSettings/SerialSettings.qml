@@ -88,11 +88,8 @@ ColumnLayout {
                     baud = subEditConfig.baud.toString()
                 }
                 var index = baudCombo.find(baud)
-                if (index === -1) {
-                    console.warn(qsTr("Baud rate name not in combo box"), baud)
-                } else {
+                if (index !== -1)
                     baudCombo.currentIndex = index
-                }
             }
         }
     }
@@ -148,7 +145,6 @@ ColumnLayout {
                     currentIndex = 2
                     break
                 default:
-                    console.warn("Unknown parity", subEditConfig.parity)
                     break
                 }
             }

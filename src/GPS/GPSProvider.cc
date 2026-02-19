@@ -220,16 +220,17 @@ GPSBaseStationSupport *GPSProvider::_connectGPS()
         baudrate = 0;
         break;
     case GPSType::u_blox:
-        //gpsDriver = new GPSDriverUBX(GPSDriverUBX::Interface::UART, &_callbackEntry, this, &_sensorGps, &_satelliteInfo, nullptr);
         gpsDriver = new GPSDriverUBX(GPSDriverUBX::Interface::UART, &_callbackEntry, this, &_sensorGps, &_satelliteInfo,
-                                     GPSDriverUBX::Settings(0b111,  // dynamic_model (예: 7)
-                                                            10,     // dgnss_timeout (기본값 추가 필요할 수 있음)
-                                                            0,      // min_cno
-                                                            10,     // min_elev
-                                                            kGPSHeadingOffset,          // heading_offset
-                                                            UBX_BAUDRATE_M8_AND_NEWER,  // uart2_baudrate
-                                                            true,                       // ppk_output
-                                                            GPSDriverUBX::UBXMode::GroundControlStation  // mode
+                                     GPSDriverUBX::Settings(0b111,                                      // dynamic_model
+                                                            10,                                         // dgnss_timeout
+                                                            0,                                          // min_cno
+                                                            10,                                         // min_elev
+                                                            0,                                          // output_rate (0=auto)
+                                                            kGPSHeadingOffset,                          // heading_offset
+                                                            static_cast<int32_t>(UBX_BAUDRATE_M8_AND_NEWER), // uart2_baudrate
+                                                            true,                                       // ppk_output
+                                                            false,                                      // jam_det_sensitivity_hi
+                                                            GPSDriverUBX::UBXMode::GroundControlStation // mode
                                                             ));
         baudrate = 0;
         break;

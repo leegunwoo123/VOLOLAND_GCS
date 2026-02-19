@@ -28,10 +28,7 @@ Item {
         return ""
     }
 
-    Component.onCompleted: {
-        console.log(getImage())
-        subImage.source = getImage()
-    }
+    Component.onCompleted: subImage.source = getImage()
 
     Image {
         id: subImage

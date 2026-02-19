@@ -1,23 +1,9 @@
 import QtQuick
-<<<<<<< HEAD
-=======
 import QtQuick.Layouts
->>>>>>> f9dfdbd69 (commit (clean))
 
 import QGroundControl
 import QGroundControl.Controls
 import QGroundControl.ScreenTools
-<<<<<<< HEAD
-import QGroundControl.FlightDisplay
-import QGroundControl.FlightMap
-
-Rectangle{
-    color: "#252525"
-    Text {
-        id: example
-        text: qsTr("Drone Detail Info")
-        anchors.centerIn: parent
-=======
 import QGroundControl.Palette
 
 Rectangle {
@@ -87,6 +73,5 @@ Rectangle {
             // 5행의 빈 칸을 채워 정렬 유지
             Item { Layout.columnSpan: 2 }
         }
->>>>>>> f9dfdbd69 (commit (clean))
     }
 }

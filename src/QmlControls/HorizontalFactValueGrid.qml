@@ -183,10 +183,8 @@ T.HorizontalFactValueGrid {
 
         onClicked: (mouse) => {
             var columnGridLayoutItem = labelValueColumnLayout.childAt(mouse.x, mouse.y)
-            //console.log(mouse.x, mouse.y, columnGridLayoutItem)
             var mappedMouse = labelValueColumnLayout.mapToItem(columnGridLayoutItem, mouse.x, mouse.y)
             var labelOrDataItem = columnGridLayoutItem.childAt(mappedMouse.x, mappedMouse.y)
-            //console.log(mappedMouse.x, mappedMouse.y, labelOrDataItem, labelOrDataItem ? labelOrDataItem.instrumentValueData : "null", labelOrDataItem && labelOrDataItem.parent ? labelOrDataItem.parent.instrumentValueData : "null")
             if (labelOrDataItem && labelOrDataItem.instrumentValueData !== undefined) {
                 valueEditDialog.createObject(mainWindow, { instrumentValueData: labelOrDataItem.instrumentValueData }).open()
             }

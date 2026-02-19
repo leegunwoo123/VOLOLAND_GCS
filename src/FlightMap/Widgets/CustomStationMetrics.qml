@@ -1,23 +1,9 @@
 import QtQuick
-<<<<<<< HEAD
-=======
 import QtQuick.Layouts
->>>>>>> f9dfdbd69 (commit (clean))
 
 import QGroundControl
 import QGroundControl.Controls
 import QGroundControl.ScreenTools
-<<<<<<< HEAD
-import QGroundControl.FlightDisplay
-import QGroundControl.FlightMap
-
-Rectangle{
-    color: "#252525"
-    Text {
-        id: example
-        text: qsTr("Status Detail Info")
-        anchors.centerIn: parent
-=======
 import QGroundControl.Palette
 
 Rectangle {
@@ -117,6 +103,5 @@ Rectangle {
             DataLabel { text: "ON" }
 
         }
->>>>>>> f9dfdbd69 (commit (clean))
     }
 }

@@ -93,7 +93,6 @@ Item {
                     return index
                 }
             }
-            console.warn("SensorSetup.qml:currentMagParamCount internal error")
             return -1
         }
     }
@@ -115,7 +114,6 @@ Item {
                     return externalMagCount
                 }
             }
-            console.warn("SensorSetup.qml:currentExternalMagCount internal error")
             return 0
         }
     }

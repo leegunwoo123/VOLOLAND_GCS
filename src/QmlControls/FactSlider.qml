@@ -32,15 +32,7 @@ ValueSlider {
 
     property bool _loadComplete: false
     
-    Component.onCompleted: {
-        _loadComplete = true
-        if (fact && fact.minIsDefaultForType && fact.min == from) {
-            console.error("FactSlider: Fact is minIsDefaultForType", _fact.name)
-        }
-        if (fact && fact.maxIsDefaultForType && fact.max == to) {
-            console.error("FactSlider: Fact is maxIsDefaultForType", _fact.name)
-        }
-    }
+    Component.onCompleted: _loadComplete = true
 
     Component.onDestruction: {
         if (updateTimer.running) {

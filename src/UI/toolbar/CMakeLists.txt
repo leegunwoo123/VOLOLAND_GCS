@@ -1,16 +1,21 @@
 qt_add_library(ToolbarModule STATIC)
 
+set_source_files_properties(CustomToolbarMetrics.qml PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
+
 qt_add_qml_module(ToolbarModule
     URI QGroundControl.Toolbar
     VERSION 1.0
     RESOURCE_PREFIX /qml
     QML_FILES
+        CustomToolbarMetrics.qml
         APMBatteryIndicator.qml
         APMFlightModeIndicator.qml
         APMMainStatusIndicatorContentItem.qml
         APMSupportForwardingIndicator.qml
         ArmedIndicator.qml
         CustomToolbar.qml
+        ServerSettingsPopup.qml
+        UserInfoPopup.qml
         GCSControlIndicator.qml
         GimbalIndicator.qml
         JoystickIndicator.qml

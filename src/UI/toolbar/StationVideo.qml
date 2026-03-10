@@ -24,9 +24,28 @@ Rectangle {
     readonly property real _rightControlButtonSize: Math.max(22, Math.min(34,
         (videoOutput.height - (_rightControlMargin * 2) - (_rightControlSpacing * (_rightControlCount - 1))) / _rightControlCount))
 
+    // 테스트: 기체가 아닌 로컬 스트림 사용 시 기본값 127.0.0.1:8554/live
     readonly property string rtspSource: (backend && backend.rtspUrl) ?
                                               backend.rtspUrl :
-                                              "rtsp://127.0.0.1:8554/live"
+                                              "rtsp://127.0.0.1:82554/live"
+
+    /// 연결중/대기중인 세션을 닫음 (새 연결 전 호출)
+    function _teardownSession() {
+        mediaPlayer.stop()
+    }
+
+    /// 소스가 유효할 때만 세션 정리 후 재생 (연결중이면 먼저 세션 닫기)
+    function _applySourceAndPlay() {
+        if (!rtspSource)
+            return
+        var status = mediaPlayer.mediaStatus
+        var connectingOrActive = (status !== MediaPlayer.NoMedia && status !== MediaPlayer.InvalidMedia)
+        if (connectingOrActive)
+            _teardownSession()
+        mediaPlayer.play()
+    }
+
+    onRtspSourceChanged: Qt.callLater(_applySourceAndPlay)
 
     VideoOutput {
         id: videoOutput
@@ -347,11 +366,8 @@ Rectangle {
         id: reconnectTimer
         interval: 3000
         repeat: false
-        onTriggered: {
-            mediaPlayer.stop()
-            mediaPlayer.play()
-        }
+        onTriggered: _applySourceAndPlay()
     }
 
-    Component.onCompleted: mediaPlayer.play()
+    Component.onCompleted: Qt.callLater(_applySourceAndPlay)
 }

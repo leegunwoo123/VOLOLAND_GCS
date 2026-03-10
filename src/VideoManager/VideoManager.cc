@@ -643,6 +643,78 @@ void VideoManager::stopVideo()
     }
 }
 
+void VideoManager::registerDroneVideoWidget(QQuickItem *widget)
+{
+#ifdef QGC_GST_STREAMING
+    if (!widget) {
+        return;
+    }
+    if (_droneVideoReceiver) {
+        return;
+    }
+    VideoReceiver *receiver = QGCCorePlugin::instance()->createVideoReceiver(this);
+    if (!receiver) {
+        return;
+    }
+    receiver->setName(QStringLiteral("droneVideo"));
+    receiver->setWidget(widget);
+
+    void *sink = QGCCorePlugin::instance()->createVideoSink(widget, receiver);
+    if (!sink) {
+        delete receiver;
+        return;
+    }
+    receiver->setSink(sink);
+
+    (void) connect(receiver, &VideoReceiver::onStartComplete, this, [this, receiver](VideoReceiver::STATUS status) {
+        if (!receiver) { return; }
+        switch (status) {
+        case VideoReceiver::STATUS_OK:
+            receiver->setStarted(true);
+            if (receiver->sink()) {
+                receiver->startDecoding(receiver->sink());
+            }
+            break;
+        case VideoReceiver::STATUS_INVALID_URL:
+        case VideoReceiver::STATUS_INVALID_STATE:
+            break;
+        default:
+            _restartVideo(receiver);
+            break;
+        }
+    });
+    (void) connect(receiver, &VideoReceiver::onStopComplete, this, [this, receiver](VideoReceiver::STATUS status) {
+        receiver->setStarted(false);
+        if (status != VideoReceiver::STATUS_INVALID_URL) {
+            QTimer::singleShot(1000, receiver, [this, receiver]() { _startReceiver(receiver); });
+        }
+    });
+
+    _videoReceivers.append(receiver);
+    _droneVideoReceiver = receiver;
+    _updateSettings(receiver);
+    _startReceiver(receiver);
+#else
+    Q_UNUSED(widget);
+#endif
+}
+
+void VideoManager::unregisterDroneVideoWidget()
+{
+#ifdef QGC_GST_STREAMING
+    if (!_droneVideoReceiver) {
+        return;
+    }
+    VideoReceiver *receiver = _droneVideoReceiver;
+    _droneVideoReceiver = nullptr;
+    disconnect(receiver, nullptr, this, nullptr);
+    _stopReceiver(receiver);
+    QGCCorePlugin::instance()->releaseVideoSink(receiver->sink());
+    _videoReceivers.removeOne(receiver);
+    receiver->deleteLater();
+#endif
+}
+
 void VideoManager::_startReceiver(VideoReceiver *receiver)
 {
     if (!receiver) {

@@ -32,8 +32,8 @@ public:
     /// Write current log messages to a file asynchronously
     Q_INVOKABLE void writeMessages(const QString &destFile);
 
-    /// Enqueue a log message (thread-safe)
-    void log(const QString &message);
+    /// Enqueue a log message (thread-safe). QML에서 앱 로그 창에 남기려면 debugMessageModel.log("msg") 호출.
+    Q_INVOKABLE void log(const QString &message);
 
 signals:
     /// Emitted when a log message is enqueued

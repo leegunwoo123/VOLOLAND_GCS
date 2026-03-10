@@ -17,6 +17,7 @@
 
 Q_DECLARE_LOGGING_CATEGORY(VideoManagerLog)
 
+class QQuickItem;
 class QQuickWindow;
 class FinishVideoInitialization;
 class SubtitleWriter;
@@ -62,6 +63,9 @@ public:
     Q_INVOKABLE void startVideo();
     Q_INVOKABLE void stopRecording();
     Q_INVOKABLE void stopVideo();
+    /// GStreamer 빌드에서 DroneVideo 영역에 RTSP 스트림을 표시할 때 호출. widget은 GstGLQt6VideoItem 등 비디오 싱크 위젯.
+    Q_INVOKABLE void registerDroneVideoWidget(QQuickItem *widget);
+    Q_INVOKABLE void unregisterDroneVideoWidget();
 
     void init(QQuickWindow *rootWindow);
     void cleanup();
@@ -120,6 +124,7 @@ private:
     static void _cleanupOldVideos();
 
     QList<VideoReceiver*> _videoReceivers;
+    VideoReceiver *_droneVideoReceiver = nullptr;
 
     SubtitleWriter *_subtitleWriter = nullptr;
     VideoSettings *_videoSettings = nullptr;

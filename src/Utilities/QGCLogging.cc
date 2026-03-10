@@ -26,8 +26,10 @@ static QtMessageHandler defaultHandler = nullptr;
 
 static void msgHandler(QtMsgType type, const QMessageLogContext &context, const QString &msg)
 {
-    // Filter via QLoggingCategory rules early
+    // 카테고리가 꺼져 있어도 기본 핸들러(콘솔/디버그 출력)에는 전달 — QML console.log 등이 보이도록
     if (!QLoggingCategory(context.category).isDebugEnabled()) {
+        if (defaultHandler)
+            defaultHandler(type, context, msg);
         return;
     }
 

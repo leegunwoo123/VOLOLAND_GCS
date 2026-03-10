@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import QtQuick.Window
+import QtMultimedia 6.8
 
 import QGroundControl
 import QGroundControl.Controllers
@@ -38,8 +39,17 @@ RowLayout {
     property bool _cursorOverRightPanel: rightPanelHoverArea.containsMouse
     property bool rightPanelStationVisible: true
     property bool leftPanelVisible: true
+    property bool droneVideoOnMap: false
+    /// true면 확대창은 숨기고 mapHolder 위에 최소화 오버레이만 표시
+    property bool expandWindowMinimized: false
+    property bool stationVideoOnMap: false
 
     readonly property real _panelHorizontalMargins: 4
+
+    /// 비디오 채널 목록(멀티화면 대비). url 없으면 설정 기본값 사용. 나중에 녹화/활성화 시 채널 단위 확장.
+    property var _videoChannels: [{ label: qsTr("카메라"), enabled: true }]
+    property string _defaultRtspUrl: String(QGroundControl.settingsManager.videoSettings.rtspUrl.rawValue || "").trim() || "rtsp://127.0.0.1:8554/live"
+    readonly property string _primaryEffectiveRtspUrl: (_defaultRtspUrl === "") ? "" : (_defaultRtspUrl.indexOf("?") >= 0 ? _defaultRtspUrl + "&rtsp_transport=udp" : _defaultRtspUrl + "?rtsp_transport=udp")
 
     // 좌측: 드론 상태 (빈 영역 드래그 시 맵으로 이벤트 전달 방지)
     Item {
@@ -117,19 +127,36 @@ RowLayout {
                 Layout.maximumWidth: 350 * 1.25
             }
 
-            DroneVideo{
-
-                id: droneVideo
+            ColumnLayout {
+                id: droneVideoHome
                 Layout.fillWidth: true
                 Layout.minimumWidth: root.width > 0 ? 350 : 0
                 Layout.minimumHeight: 200
                 Layout.preferredWidth: droneStatus.width
-                Layout.preferredHeight: Layout.preferredWidth * 0.75
+                Layout.preferredHeight: 200
                 Layout.maximumWidth: 350 * 1.25
                 Layout.maximumHeight: 200 * 1.25
-
-                deviceName: droneList.selectedDevice
-                //visible: droneList.selectedDevice !== ""
+                spacing: 2
+                Repeater {
+                    model: root._videoChannels
+                    delegate: Item {
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: 200
+                        Layout.minimumHeight: 120
+                        DroneVideo {
+                            anchors.fill: parent
+                            deviceName: droneList.selectedDevice
+                            mapOverlayMode: false
+                            mapToggleEnabled: true
+                            showExpandButton: (index === 0)
+                            placeholderBlackMode: false
+                            streamEnabled: modelData.enabled !== false
+                            channelUrl: (modelData.url !== undefined && String(modelData.url).trim() !== "") ? modelData.url : root._defaultRtspUrl
+                            channelLabel: modelData.label || ""
+                            onToggleMapVideoRequested: if (index === 0) root.droneVideoOnMap = true
+                        }
+                    }
+                }
             }
 
             DroneStatusMessage{
@@ -263,6 +290,71 @@ RowLayout {
                     text: "◀"
                     color: "#ffffff"
                     font.pixelSize: 14
+                }
+            }
+        }
+
+        // 최소화 시 vehicleCurrentPostion 좌측 위 — 기체 연결 표시 + 삭제/확대 버튼만 (화면 미표시)
+        Item {
+            id: droneVideoMinimizedOverlay
+            visible: root.droneVideoOnMap && root.expandWindowMinimized
+            z: 15
+            width: 220
+            height: 32
+            anchors.left: mapHolder.left
+            anchors.leftMargin: 4
+            anchors.bottom: vehicleCurrentPostion.top
+            anchors.bottomMargin: 4
+
+            Rectangle {
+                anchors.fill: parent
+                color: "#1a1a1a"
+                border.color: "#3a3a3a"
+                border.width: 1
+                radius: 4
+            }
+            Text {
+                id: minimizedDeviceLabel
+                anchors.verticalCenter: parent.verticalCenter
+                anchors.left: parent.left
+                anchors.leftMargin: 8
+                text: root.selectedDeviceName ? root.selectedDeviceName : qsTr("연결된 기체")
+                color: "#e0e0e0"
+                font.pixelSize: 12
+                elide: Text.ElideRight
+                width: parent.width - (8 + 8 + 36 + 36 + 8)
+            }
+            Rectangle {
+                width: 32
+                height: 24
+                anchors.verticalCenter: parent.verticalCenter
+                anchors.right: expandMinimizedBtn.left
+                anchors.rightMargin: 4
+                color: deleteMinimizedBtn.containsMouse ? "#5a2a2a" : "transparent"
+                radius: 2
+                Text { anchors.centerIn: parent; text: "×"; color: "white"; font.pixelSize: 14 }
+                MouseArea {
+                    id: deleteMinimizedBtn
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    onClicked: { root.droneVideoOnMap = false; root.expandWindowMinimized = false }
+                }
+            }
+            Rectangle {
+                id: expandMinimizedBtn
+                width: 32
+                height: 24
+                anchors.verticalCenter: parent.verticalCenter
+                anchors.right: parent.right
+                anchors.rightMargin: 4
+                color: expandMinimizedBtnArea.containsMouse ? "#2f2f2f" : "transparent"
+                radius: 2
+                Text { anchors.centerIn: parent; text: "□"; color: "white"; font.pixelSize: 12 }
+                MouseArea {
+                    id: expandMinimizedBtnArea
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    onClicked: root.expandWindowMinimized = false
                 }
             }
         }
@@ -460,6 +552,190 @@ RowLayout {
             z: 1
             hoverEnabled: true
             acceptedButtons: Qt.NoButton
+        }
+    }
+
+    // 확대창: 기본 영상(DroneVideo)과 별도 MediaPlayer로 같은 URL 재생 — 기본 화면 + 확대창 둘 다 표시. 앱 밖(다른 모니터) 이동·Aero Snap 지원.
+    Window {
+        id: droneVideoExpandWindow
+        visibility: (root.droneVideoOnMap && !root.expandWindowMinimized) ? (droneVideoExpandWindow._maximized ? Window.Maximized : Window.Windowed) : Window.Hidden
+        width: 520
+        height: 400
+        x: droneVideoExpandWindow._winX
+        y: droneVideoExpandWindow._winY
+        flags: Qt.Window | Qt.FramelessWindowHint
+
+        property real _winX: 0
+        property real _winY: 0
+        property bool _maximized: false
+
+        onVisibilityChanged: {
+            _maximized = (visibility === Window.Maximized)
+            if (visibility === Window.Windowed)
+                _winX = x; _winY = y
+            if ((visibility === Window.Windowed || visibility === Window.Maximized) && expandWindowPlayer.source)
+                expandWindowPlayer.play()
+        }
+        onXChanged: { if (visibility === Window.Windowed) _winX = x }
+        onYChanged: { if (visibility === Window.Windowed) _winY = y }
+
+        Item {
+            id: expandWindowContent
+            anchors.fill: parent
+            signal requestMinimize()
+            signal requestToggleMaximize()
+            signal requestClose()
+
+            Column {
+                anchors.fill: parent
+                spacing: 0
+                Rectangle {
+                    id: expandTopBar
+                    width: parent.width
+                    height: 32
+                    color: "#222222"
+                    border.width: 1
+                    border.color: "#3a3a3a"
+                    z: 1
+                    readonly property real _buttonRowWidth: 36 + 36 + 40
+                    Text {
+                        anchors.verticalCenter: parent.verticalCenter
+                        anchors.left: parent.left
+                        anchors.leftMargin: 10
+                        text: qsTr("드론 비디오")
+                        color: "white"
+                        font.pixelSize: 12
+                    }
+                    MouseArea {
+                        id: expandTitleDragArea
+                        anchors.fill: parent
+                        anchors.rightMargin: expandTopBar._buttonRowWidth
+                        acceptedButtons: Qt.LeftButton | Qt.RightButton
+                        hoverEnabled: true
+                        property point _pressPos: Qt.point(0, 0)
+                        property bool _dragStarted: false
+                        onPressed: (mouse) => {
+                            if (mouse.button === Qt.LeftButton) {
+                                _pressPos = Qt.point(mouse.x, mouse.y)
+                                _dragStarted = false
+                            } else if (mouse.button === Qt.RightButton) {
+                                var rootPos = mapToItem(expandWindowContent, mouse.x, mouse.y)
+                                var globalX = droneVideoExpandWindow.x + rootPos.x
+                                var globalY = droneVideoExpandWindow.y + rootPos.y
+                                WindowHelper.showSystemMenu(droneVideoExpandWindow, globalX, globalY)
+                            }
+                        }
+                        onPositionChanged: (mouse) => {
+                            if (mouse.buttons & Qt.LeftButton && !_dragStarted) {
+                                var deltaX = Math.abs(mouse.x - _pressPos.x)
+                                var deltaY = Math.abs(mouse.y - _pressPos.y)
+                                if (deltaX > 5 || deltaY > 5) {
+                                    _dragStarted = true
+                                    if (droneVideoExpandWindow.visibility === Window.Windowed) {
+                                        var rootPos = mapToItem(expandWindowContent, _pressPos.x, _pressPos.y)
+                                        WindowHelper.startSystemMove(droneVideoExpandWindow, rootPos.x, rootPos.y)
+                                    }
+                                }
+                            }
+                        }
+                        onReleased: (mouse) => {
+                            if (_dragStarted && mouse.button === Qt.LeftButton) {
+                                var rootPos = mapToItem(expandWindowContent, mouse.x, mouse.y)
+                                var globalX = droneVideoExpandWindow.x + rootPos.x
+                                var globalY = droneVideoExpandWindow.y + rootPos.y
+                                WindowHelper.handleAeroSnap(droneVideoExpandWindow, globalX, globalY)
+                            }
+                            _dragStarted = false
+                        }
+                        onDoubleClicked: (mouse) => {
+                            if (mouse.button === Qt.LeftButton)
+                                WindowHelper.toggleMaximizeRestore(droneVideoExpandWindow)
+                        }
+                    }
+                    Row {
+                        anchors.right: parent.right
+                        anchors.verticalCenter: parent.verticalCenter
+                        spacing: 2
+                        height: expandTopBar.height
+                        z: 2
+                        Rectangle {
+                            width: 36
+                            height: expandTopBar.height
+                            color: minBtnArea.containsMouse ? "#2f2f2f" : "transparent"
+                            Text { anchors.centerIn: parent; text: "—"; color: "white"; font.pixelSize: 14 }
+                            MouseArea {
+                                id: minBtnArea
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                onClicked: expandWindowContent.requestMinimize()
+                            }
+                        }
+                        Rectangle {
+                            width: 36
+                            height: expandTopBar.height
+                            color: maxBtnArea.containsMouse ? "#2f2f2f" : "transparent"
+                            Text { anchors.centerIn: parent; text: "□"; color: "white"; font.pixelSize: 12 }
+                            MouseArea {
+                                id: maxBtnArea
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                onClicked: expandWindowContent.requestToggleMaximize()
+                            }
+                        }
+                        Rectangle {
+                            width: 40
+                            height: expandTopBar.height
+                            color: closeBtnArea.containsMouse ? "#C42B1C" : "transparent"
+                            Text { anchors.centerIn: parent; text: "×"; color: "white"; font.pixelSize: 16 }
+                            MouseArea {
+                                id: closeBtnArea
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                onClicked: expandWindowContent.requestClose()
+                            }
+                        }
+                    }
+                }
+                Item {
+                    id: expandVideoArea
+                    width: expandTopBar.width
+                    height: expandWindowContent.height - expandTopBar.height
+                    VideoOutput {
+                        id: expandVideoOutput
+                        anchors.fill: parent
+                        fillMode: VideoOutput.PreserveAspectFit
+                    }
+                    MediaPlayer {
+                        id: expandWindowPlayer
+                        videoOutput: expandVideoOutput
+                        source: root._primaryEffectiveRtspUrl
+                        audioOutput: AudioOutput { muted: true }
+                        onSourceChanged: if (source) play()
+                    }
+                }
+            }
+        }
+
+        Connections {
+            target: expandWindowContent
+            function onRequestMinimize() { root.expandWindowMinimized = true }
+            function onRequestToggleMaximize() { WindowHelper.toggleMaximizeRestore(droneVideoExpandWindow) }
+            function onRequestClose() { root.droneVideoOnMap = false; root.expandWindowMinimized = false }
+        }
+    }
+
+    Component.onCompleted: {
+        if (root.droneVideoOnMap) {
+            droneVideoExpandWindow._winX = (Screen.width - droneVideoExpandWindow.width) / 2
+            droneVideoExpandWindow._winY = (Screen.height - droneVideoExpandWindow.height) / 2
+        }
+    }
+    onDroneVideoOnMapChanged: {
+        if (root.droneVideoOnMap) {
+            root.expandWindowMinimized = false
+            droneVideoExpandWindow._maximized = false
+            droneVideoExpandWindow._winX = (Screen.width - droneVideoExpandWindow.width) / 2
+            droneVideoExpandWindow._winY = (Screen.height - droneVideoExpandWindow.height) / 2
         }
     }
 }

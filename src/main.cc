@@ -133,13 +133,20 @@ int main(int argc, char *argv[])
 #endif
 #endif
 
-#ifdef Q_OS_UNIX
+    // QML console.log / qDebug를 콘솔(디버그 출력)로 보내기 (VS 디버깅 시 출력 창에서 확인)
     if (!qEnvironmentVariableIsSet("QT_LOGGING_TO_CONSOLE")) {
         qputenv("QT_LOGGING_TO_CONSOLE", "1");
     }
-#endif
 
     QGCLogging::installHandler();
+
+    // RTSP 재생: Windows에서 WMF 대신 FFmpeg 백엔드 사용 (WMF는 RTSP 지원 약함)
+    qputenv("QT_MEDIA_BACKEND", "ffmpeg");
+    // RTSP 및 네스트 프로토콜 허용 (Could not open file 방지)
+    qputenv("QT_FFMPEG_PROTOCOL_WHITELIST", "file,crypto,rtp,udp,tcp,rtsp");
+    // RTSP 재생 시 HW 디코딩(format 171 등) 실패 방지 — 소프트웨어 디코딩 강제
+    qputenv("QT_FFMPEG_DECODING_HW_DEVICE_TYPES", "");
+    // RTSP 연결 실패 시 원인 확인: 실행 전에 환경변수 QT_FFMPEG_DEBUG=1 설정 시 FFmpeg 상세 로그 출력
 
 #ifdef Q_OS_MACOS
     // Prevent Apple's app nap from screwing us over

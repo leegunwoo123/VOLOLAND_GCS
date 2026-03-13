@@ -511,6 +511,11 @@ bool VideoManager::_updateSettings(VideoReceiver *receiver)
     settingsChanged |= _updateUVC(receiver);
     settingsChanged |= _updateAutoStream(receiver);
 
+    if (receiver == _droneVideoReceiver && _droneVideoUriOverridden) {
+        settingsChanged |= _updateVideoUri(receiver, _droneVideoCustomUri);
+        return settingsChanged;
+    }
+
     const QString source = _videoSettings->videoSource()->rawValue().toString();
     if (source == VideoSettings::videoSourceUDPH264) {
         settingsChanged |= _updateVideoUri(receiver, QStringLiteral("udp://%1").arg(_videoSettings->udpUrl()->rawValue().toString()));
@@ -699,6 +704,20 @@ void VideoManager::registerDroneVideoWidget(QQuickItem *widget)
 #endif
 }
 
+void VideoManager::setDroneVideoUri(const QString &uri)
+{
+#ifdef QGC_GST_STREAMING
+    _droneVideoUriOverridden = true;
+    _droneVideoCustomUri = uri;
+    if (!_droneVideoReceiver)
+        return;
+    if (_updateVideoUri(_droneVideoReceiver, uri))
+        _restartVideo(_droneVideoReceiver);
+#else
+    Q_UNUSED(uri);
+#endif
+}
+
 void VideoManager::unregisterDroneVideoWidget()
 {
 #ifdef QGC_GST_STREAMING
@@ -707,6 +726,8 @@ void VideoManager::unregisterDroneVideoWidget()
     }
     VideoReceiver *receiver = _droneVideoReceiver;
     _droneVideoReceiver = nullptr;
+    _droneVideoCustomUri.clear();
+    _droneVideoUriOverridden = false;
     disconnect(receiver, nullptr, this, nullptr);
     _stopReceiver(receiver);
     QGCCorePlugin::instance()->releaseVideoSink(receiver->sink());

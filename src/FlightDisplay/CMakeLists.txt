@@ -9,7 +9,6 @@ qt_add_qml_module(FlightDisplayModule
         CustomFlyView.qml
         DefaultChecklist.qml
         DroneList.qml
-        DroneVideoGStreamer.qml
         FixedWingChecklist.qml
         FlightDisplayViewDummy.qml
         FlightDisplayViewGStreamer.qml

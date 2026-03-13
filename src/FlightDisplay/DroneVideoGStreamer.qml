@@ -1,14 +1,33 @@
 /****************************************************************************
  *
  * DroneVideo 전용 GStreamer 비디오 아이템.
- * VideoManager.registerDroneVideoWidget()에 이 아이템을 전달해 RTSP 스트림을 표시.
- * (GStreamer 빌드에서만 사용, Windows 등 WMF가 RTSP를 지원하지 않는 환경 대응)
+ * - channelIndex >= 0 이면 VideoManager 커스텀 다중 영상 채널로 등록·재생.
+ * - channelIndex < 0 이면 registerDroneVideoWidget() 등 기존 단일 위젯용으로만 사용.
  *
  ****************************************************************************/
 
 import QtQuick
+import QGroundControl
 import org.freedesktop.gstreamer.Qt6GLVideoItem
 
-GstGLQt6VideoItem {
-    id: droneVideoGstItem
+Item {
+    property int channelIndex: -1
+    property string channelUrl: ""
+
+    GstGLQt6VideoItem {
+        id: droneVideoGstItem
+        anchors.fill: parent
+    }
+
+    Component.onCompleted: {
+        if (channelIndex >= 0 && channelUrl) {
+            QGroundControl.videoManager.registerCustomVideoWidget(channelIndex, droneVideoGstItem)
+            QGroundControl.videoManager.setCustomChannelUrl(channelIndex, channelUrl)
+        }
+    }
+
+    Component.onDestruction: {
+        if (channelIndex >= 0)
+            QGroundControl.videoManager.unregisterCustomVideoWidget(channelIndex)
+    }
 }

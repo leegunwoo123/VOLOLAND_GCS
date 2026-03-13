@@ -66,6 +66,8 @@ public:
     /// GStreamer 빌드에서 DroneVideo 영역에 RTSP 스트림을 표시할 때 호출. widget은 GstGLQt6VideoItem 등 비디오 싱크 위젯.
     Q_INVOKABLE void registerDroneVideoWidget(QQuickItem *widget);
     Q_INVOKABLE void unregisterDroneVideoWidget();
+    /// 등록된 드론 비디오 위젯에 사용할 URL 설정. registerDroneVideoWidget 이후 호출. 설정의 rtsp/udp 대신 이 값 사용.
+    Q_INVOKABLE void setDroneVideoUri(const QString &uri);
 
     void init(QQuickWindow *rootWindow);
     void cleanup();
@@ -125,6 +127,8 @@ private:
 
     QList<VideoReceiver*> _videoReceivers;
     VideoReceiver *_droneVideoReceiver = nullptr;
+    QString _droneVideoCustomUri;
+    bool _droneVideoUriOverridden = false;
 
     SubtitleWriter *_subtitleWriter = nullptr;
     VideoSettings *_videoSettings = nullptr;

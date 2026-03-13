@@ -44,4 +44,9 @@ public:
     /// window: ApplicationWindow 인스턴스 (QML의 mainWindow)
     /// direction: "up"(최대화), "down"(복원/최소화), "left"(좌반), "right"(우반)
     Q_INVOKABLE void handleAeroSnapShortcut(QObject* window, const QString& direction);
+
+    /// 창 테두리 드래그 리사이즈 시작 (상·하·좌·우)
+    /// window: ApplicationWindow 인스턴스 (QML의 mainWindow)
+    /// edge: Qt.LeftEdge(1), Qt.RightEdge(2), Qt.TopEdge(4), Qt.BottomEdge(8)
+    Q_INVOKABLE void startSystemResize(QObject* window, int edge);
 };

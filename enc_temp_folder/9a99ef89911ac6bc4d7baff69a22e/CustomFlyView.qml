@@ -54,6 +54,8 @@ RowLayout {
 
     /// 메인 비디오용 주소 (서버 모드 미선택/폴백 시). udp:// 또는 rtsp://
     readonly property string _mainVideoRtspUrl: "rtsp://127.0.0.1:8554/live"
+    /// 메인 비디오 RTSP 전송 방식. rtsp:// 일 때만 사용. "tcp"(VLC) / "udp"
+    /// 참고: Qt Multimedia FFmpeg 백엔드는 URL 쿼리의 rtsp_transport를 FFmpeg에 전달하지 않을 수 있음. 실제 전송은 백엔드 기본값(TCP 등)일 수 있음.
     readonly property string _mainVideoRtspTransport: "udp"
 
     /// 서버에서 받아올 장비 목록. 요소: { id, name, rtspUrl }. 로컬 테스트용 하드코딩 → 추후 API로 교체.

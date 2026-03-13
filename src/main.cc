@@ -142,11 +142,11 @@ int main(int argc, char *argv[])
 
     // RTSP 재생: Windows에서 WMF 대신 FFmpeg 백엔드 사용 (WMF는 RTSP 지원 약함)
     qputenv("QT_MEDIA_BACKEND", "ffmpeg");
-    // RTSP 및 네스트 프로토콜 허용 (Could not open file 방지)
+    // RTSP 및 네스트 프로토콜 허용 (Could not open file 방지). 라이브 스트리밍은 DroneVideo에서 rtsp_transport=udp 사용.
     qputenv("QT_FFMPEG_PROTOCOL_WHITELIST", "file,crypto,rtp,udp,tcp,rtsp");
     // RTSP 재생 시 HW 디코딩(format 171 등) 실패 방지 — 소프트웨어 디코딩 강제
     qputenv("QT_FFMPEG_DECODING_HW_DEVICE_TYPES", "");
-    // RTSP 연결 실패 시 원인 확인: 실행 전에 환경변수 QT_FFMPEG_DEBUG=1 설정 시 FFmpeg 상세 로그 출력
+    // RTSP 연결 실패/디멕스 오류 원인 확인: 실행 전에 환경변수 QT_FFMPEG_DEBUG=1 설정 시 FFmpeg 상세 로그 출력
 
 #ifdef Q_OS_MACOS
     // Prevent Apple's app nap from screwing us over

@@ -35,6 +35,9 @@ public:
     /// Enqueue a log message (thread-safe). QML에서 앱 로그 창에 남기려면 debugMessageModel.log("msg") 호출.
     Q_INVOKABLE void log(const QString &message);
 
+    /// Log message to C++ console (qDebug). VS 디버그 출력 창에 확실히 표시. QML 디버깅용.
+    Q_INVOKABLE void logToConsole(const QString &message);
+
 signals:
     /// Emitted when a log message is enqueued
     void emitLog(const QString &message);

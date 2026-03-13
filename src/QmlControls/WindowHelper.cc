@@ -15,6 +15,7 @@
 #include <QtCore/QRect>
 #include <QtCore/QString>
 #include <QtCore/QDebug>
+#include <QtCore/Qt>
 
 #ifdef Q_OS_WIN
 #include <windows.h>
@@ -374,4 +375,37 @@ void WindowHelper::handleAeroSnapShortcut(QObject* window, const QString& direct
     // Linux/macOS에서는 Aero Snap 단축키 미지원
     Q_UNUSED(direction)
     #endif
+}
+
+void WindowHelper::startSystemResize(QObject* window, int edge)
+{
+    QWindow* qWindow = nullptr;
+
+    if (auto* quickWindow = qobject_cast<QQuickWindow*>(window)) {
+        qWindow = quickWindow;
+    } else if (auto* item = qobject_cast<QQuickItem*>(window)) {
+        if (item->window()) {
+            qWindow = item->window();
+        }
+    } else if (auto* windowObj = qobject_cast<QWindow*>(window)) {
+        qWindow = windowObj;
+    }
+
+    if (!qWindow) {
+        return;
+    }
+
+    // 최대화 상태에서는 리사이즈 불가
+    if (qWindow->windowState() == Qt::WindowMaximized) {
+        return;
+    }
+
+#if QT_VERSION >= QT_VERSION_CHECK(5, 15, 0)
+    Qt::Edges edges = static_cast<Qt::Edges>(edge & (Qt::LeftEdge | Qt::RightEdge | Qt::TopEdge | Qt::BottomEdge));
+    if (edges != Qt::Edges()) {
+        qWindow->startSystemResize(edges);
+    }
+#else
+    Q_UNUSED(edge)
+#endif
 }

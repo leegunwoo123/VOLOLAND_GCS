@@ -26,6 +26,7 @@
 #include <QtQuick/QQuickItem>
 
 #include <gst/gst.h>
+#include <gst/gsterror.h>
 
 QGC_LOGGING_CATEGORY(GstVideoReceiverLog, "qgc.videomanager.videoreceiver.gstreamer.gstvideoreceiver")
 
@@ -659,9 +660,16 @@ GstElement *GstVideoReceiver::_makeSource(const QString &input)
                 break;
             }
 
+            // location에는 쿼리/프래그먼트 제거한 URL만 전달 (MediaMTX 등이 path만으로 매칭하므로 ?rtsp_transport=udp 제거)
+            const QUrl locationUrl = sourceUrl.adjusted(QUrl::RemoveQuery | QUrl::RemoveFragment);
+            const QString rtspLocation = locationUrl.toString();
+
+            // RTSP 라이브 스트림: UDP 전송(지연·헤드오브라인 블로킹 완화), low-latency 시 버퍼 최소화
+            const int latencyMs = lowLatency() ? 10 : 25;
             g_object_set(source,
-                         "location", input.toUtf8().constData(),
-                         "latency", 25,
+                         "location", rtspLocation.toUtf8().constData(),
+                         "latency", latencyMs,
+                         "protocols", 0x01,  /* GstRtspLowerTrans: UDP — live streaming via server */
                          nullptr);
         } else if (isTcpMPEGTS) {
             source = gst_element_factory_make("tcpclientsrc", "source");
@@ -684,8 +692,11 @@ GstElement *GstVideoReceiver::_makeSource(const QString &input)
             }
 
             const QString uri = QStringLiteral("udp://%1:%2").arg(sourceUrl.host(), QString::number(sourceUrl.port()));
+            // RTP 대량 수신 시 커널 수신 버퍼 부족으로 인한 패킷 손실 완화 (대역폭/수신 처리 여유 확보)
+            constexpr guint kUdpRtpRecvBufferBytes = 2 * 1024 * 1024;  // 2 MiB
             g_object_set(source,
                          "uri", uri.toUtf8().constData(),
+                         "buffer-size", kUdpRtpRecvBufferBytes,
                          nullptr);
 
             GstCaps *caps = nullptr;
@@ -764,6 +775,11 @@ GstElement *GstVideoReceiver::_makeSource(const QString &input)
                     qCCritical(GstVideoReceiverLog) << "gst_element_factory_make('rtpjitterbuffer') failed";
                     break;
                 }
+                // 지터 버퍼 대기 시간(ms): 네트워크 지터·재정렬 여유 확보로 RTP 패킷 손실 완화
+                const int jitterLatencyMs = 200;
+                g_object_set(buffer,
+                             "latency", jitterLatencyMs,
+                             nullptr);
 
                 (void) gst_bin_add(GST_BIN(bin), buffer);
 
@@ -1188,7 +1204,7 @@ gboolean GstVideoReceiver::_onBusMessage(GstBus * /* bus */, GstMessage *msg, gp
     switch (GST_MESSAGE_TYPE(msg)) {
     case GST_MESSAGE_ERROR: {
         gchar *debug;
-        GError *error;
+        GError *error = nullptr;
         gst_message_parse_error(msg, &error, &debug);
 
         if (debug) {
@@ -1196,15 +1212,30 @@ gboolean GstVideoReceiver::_onBusMessage(GstBus * /* bus */, GstMessage *msg, gp
             g_clear_pointer(&debug, g_free);
         }
 
+        const bool isStreamError = (error && error->domain == gst_stream_error_quark());
         if (error) {
-            qCCritical(GstVideoReceiverLog) << "GStreamer error:" << error->message;
+            qCWarning(GstVideoReceiverLog) << "GStreamer error:" << error->message;
+            if (isStreamError) {
+                qCDebug(GstVideoReceiverLog) << "Stream/decode error — flush and continue (invalid packet discarded)";
+            }
             g_clear_error(&error);
         }
 
-        pThis->_worker->dispatch([pThis]() {
-            qCDebug(GstVideoReceiverLog) << "Stopping because of error";
-            pThis->stop();
-        });
+        if (isStreamError) {
+            // 잘못된 패킷 등으로 디코드/스트림 에러 시 파이프라인 정지 대신 플러시 후 재생 계속
+            pThis->_worker->dispatch([pThis]() {
+                if (pThis->_pipeline) {
+                    (void) gst_element_send_event(pThis->_pipeline, gst_event_new_flush_start());
+                    (void) gst_element_send_event(pThis->_pipeline, gst_event_new_flush_stop(TRUE));
+                    qCDebug(GstVideoReceiverLog) << "Pipeline flushed, continuing";
+                }
+            });
+        } else {
+            pThis->_worker->dispatch([pThis]() {
+                qCDebug(GstVideoReceiverLog) << "Stopping because of error";
+                pThis->stop();
+            });
+        }
         break;
     }
     case GST_MESSAGE_EOS:
@@ -1322,7 +1353,15 @@ gboolean GstVideoReceiver::_padProbe(GstElement *element, GstPad *pad, gpointer 
 
 GstPadProbeReturn GstVideoReceiver::_teeProbe(GstPad *pad, GstPadProbeInfo *info, gpointer user_data)
 {
-    Q_UNUSED(pad); Q_UNUSED(info)
+    Q_UNUSED(pad);
+
+    // 잘못된 패킷은 버려서 영상 멈춤 방지 (RTSP 등에서 손상 패킷 수신 시)
+    if (info) {
+        GstBuffer *buf = gst_pad_probe_info_get_buffer(info);
+        if (!buf || gst_buffer_get_size(buf) == 0) {
+            return GST_PAD_PROBE_DROP;
+        }
+    }
 
     if (user_data) {
         GstVideoReceiver *pThis = static_cast<GstVideoReceiver*>(user_data);

@@ -57,6 +57,10 @@ target_sources(${CMAKE_PROJECT_NAME}
         ToolStripActionList.h
         CustomMissionReorderHelper.cc
         CustomMissionReorderHelper.h
+        CustomRtspReceiver.cc
+        CustomRtspReceiver.h
+        VideoPassthroughHelper.cc
+        VideoPassthroughHelper.h
         WindowHelper.cc
         WindowHelper.h
 )

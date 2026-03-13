@@ -62,8 +62,8 @@ ApplicationWindow {
     }
 
     // 최소화에서 복원 시 저장된 상태로 복원 (사용자가 의도적으로 변경한 경우 제외)
-    onVisibilityChanged: {
-        if (!_userInitiatedStateChange && visibility === Window.Windowed && _savedVisibilityBeforeMinimize === Window.Maximized) {
+    onVisibilityChanged: (newVisibility) => {
+        if (!_userInitiatedStateChange && newVisibility === Window.Windowed && _savedVisibilityBeforeMinimize === Window.Maximized) {
             // 최소화에서 복원 시 저장된 상태가 최대화였으면 다시 최대화
             Qt.callLater(function() {
                 if (mainWindow.visibility === Window.Windowed && !_userInitiatedStateChange) {
@@ -570,6 +570,124 @@ ApplicationWindow {
                 }
             }
             _dragStarted = false
+        }
+    }
+
+    // 창 테두리 드래그 리사이즈 (상·하·좌·우)
+    Item {
+        id: windowEdgeResizeLayer
+        anchors.fill: parent
+        z: 50
+        visible: !ScreenTools.isMobile && mainWindow.visibility !== Window.FullScreen && mainWindow.visibility !== Window.Maximized
+
+        property int _edgeSize: 5
+        property int _cornerSize: 10
+
+        // 좌상·우상·좌하·우하 모서리 드래그 리사이즈
+        MouseArea {
+            anchors.left: parent.left
+            anchors.top: parent.top
+            width: windowEdgeResizeLayer._cornerSize
+            height: windowEdgeResizeLayer._cornerSize
+            cursorShape: Qt.SizeFDiagCursor
+            acceptedButtons: Qt.LeftButton
+            onPressed: (mouse) => {
+                if (mouse.button === Qt.LeftButton) {
+                    WindowHelper.startSystemResize(mainWindow, Qt.TopEdge | Qt.LeftEdge)
+                }
+            }
+        }
+        MouseArea {
+            anchors.right: parent.right
+            anchors.top: parent.top
+            width: windowEdgeResizeLayer._cornerSize
+            height: windowEdgeResizeLayer._cornerSize
+            cursorShape: Qt.SizeBDiagCursor
+            acceptedButtons: Qt.LeftButton
+            onPressed: (mouse) => {
+                if (mouse.button === Qt.LeftButton) {
+                    WindowHelper.startSystemResize(mainWindow, Qt.TopEdge | Qt.RightEdge)
+                }
+            }
+        }
+        MouseArea {
+            anchors.left: parent.left
+            anchors.bottom: parent.bottom
+            width: windowEdgeResizeLayer._cornerSize
+            height: windowEdgeResizeLayer._cornerSize
+            cursorShape: Qt.SizeBDiagCursor
+            acceptedButtons: Qt.LeftButton
+            onPressed: (mouse) => {
+                if (mouse.button === Qt.LeftButton) {
+                    WindowHelper.startSystemResize(mainWindow, Qt.BottomEdge | Qt.LeftEdge)
+                }
+            }
+        }
+        MouseArea {
+            anchors.right: parent.right
+            anchors.bottom: parent.bottom
+            width: windowEdgeResizeLayer._cornerSize
+            height: windowEdgeResizeLayer._cornerSize
+            cursorShape: Qt.SizeFDiagCursor
+            acceptedButtons: Qt.LeftButton
+            onPressed: (mouse) => {
+                if (mouse.button === Qt.LeftButton) {
+                    WindowHelper.startSystemResize(mainWindow, Qt.BottomEdge | Qt.RightEdge)
+                }
+            }
+        }
+
+        MouseArea {
+            anchors.left: parent.left
+            anchors.top: parent.top
+            anchors.bottom: parent.bottom
+            width: windowEdgeResizeLayer._edgeSize
+            cursorShape: Qt.SizeHorCursor
+            acceptedButtons: Qt.LeftButton
+            onPressed: (mouse) => {
+                if (mouse.button === Qt.LeftButton) {
+                    WindowHelper.startSystemResize(mainWindow, Qt.LeftEdge)
+                }
+            }
+        }
+        MouseArea {
+            anchors.right: parent.right
+            anchors.top: parent.top
+            anchors.bottom: parent.bottom
+            width: windowEdgeResizeLayer._edgeSize
+            cursorShape: Qt.SizeHorCursor
+            acceptedButtons: Qt.LeftButton
+            onPressed: (mouse) => {
+                if (mouse.button === Qt.LeftButton) {
+                    WindowHelper.startSystemResize(mainWindow, Qt.RightEdge)
+                }
+            }
+        }
+        MouseArea {
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.top: parent.top
+            height: windowEdgeResizeLayer._edgeSize
+            cursorShape: Qt.SizeVerCursor
+            acceptedButtons: Qt.LeftButton
+            onPressed: (mouse) => {
+                if (mouse.button === Qt.LeftButton) {
+                    WindowHelper.startSystemResize(mainWindow, Qt.TopEdge)
+                }
+            }
+        }
+        MouseArea {
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.bottom: parent.bottom
+            height: windowEdgeResizeLayer._edgeSize
+            cursorShape: Qt.SizeVerCursor
+            acceptedButtons: Qt.LeftButton
+            onPressed: (mouse) => {
+                if (mouse.button === Qt.LeftButton) {
+                    WindowHelper.startSystemResize(mainWindow, Qt.BottomEdge)
+                }
+            }
         }
     }
 

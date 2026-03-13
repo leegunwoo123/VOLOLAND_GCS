@@ -42,6 +42,8 @@
 #include "ToolStripAction.h"
 #include "ToolStripActionList.h"
 #include "CustomMissionReorderHelper.h"
+#include "CustomRtspReceiver.h"
+#include "VideoPassthroughHelper.h"
 #include "WindowHelper.h"
 #include "VideoManager.h"
 #include "MultiVehicleManager.h"
@@ -90,6 +92,11 @@ static QObject* windowHelperSingletonFactory(QQmlEngine*, QJSEngine*)
     return new WindowHelper();
 }
 
+static QObject* videoPassthroughHelperSingletonFactory(QQmlEngine*, QJSEngine*)
+{
+    return new VideoPassthroughHelper();
+}
+
 void QGroundControlQmlGlobal::registerQmlTypes()
 {
     qmlRegisterUncreatableType<FactValueGrid>           ("QGroundControl.Templates",             1, 0, "FactValueGrid",       "Reference only");
@@ -114,11 +121,15 @@ void QGroundControlQmlGlobal::registerQmlTypes()
     qmlRegisterType<TerrainProfile>                     ("QGroundControl.Controls",              1, 0, "TerrainProfile");
     qmlRegisterType<ToolStripAction>                    ("QGroundControl.Controls",              1, 0, "ToolStripAction");
     qmlRegisterType<ToolStripActionList>                ("QGroundControl.Controls",              1, 0, "ToolStripActionList");
+#ifdef QGC_GST_STREAMING
+    qmlRegisterType<CustomRtspReceiver>                 ("QGroundControl.Controls",              1, 0, "CustomRtspReceiver");
+#endif
 
     qmlRegisterSingletonType<QGroundControlQmlGlobal>   ("QGroundControl",                       1, 0, "QGroundControl",         qgroundcontrolQmlGlobalSingletonFactory);
     qmlRegisterSingletonType<ScreenToolsController>     ("QGroundControl.ScreenToolsController", 1, 0, "ScreenToolsController",  screenToolsControllerSingletonFactory);
     qmlRegisterSingletonType<CustomMissionReorderHelper>("QGroundControl",                       1, 0, "CustomMissionReorderHelper", customMissionReorderHelperSingletonFactory);
     qmlRegisterSingletonType<WindowHelper>("QGroundControl",                       1, 0, "WindowHelper", windowHelperSingletonFactory);
+    qmlRegisterSingletonType<VideoPassthroughHelper>("QGroundControl",             1, 0, "VideoPassthroughHelper", videoPassthroughHelperSingletonFactory);
 }
 
 QGroundControlQmlGlobal::QGroundControlQmlGlobal(QObject *parent)

@@ -88,6 +88,11 @@ void QGCLogging::log(const QString &message)
     }
 }
 
+void QGCLogging::logToConsole(const QString &message)
+{
+    qDebug().noquote() << message;
+}
+
 void QGCLogging::_threadsafeLog(const QString &message)
 {
     // Notify view of new row

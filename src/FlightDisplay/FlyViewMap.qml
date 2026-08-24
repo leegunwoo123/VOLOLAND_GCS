@@ -38,6 +38,18 @@ FlightMap {
     property bool   pipMode:                    false   // true: map is shown in a small pip mode
     property var    toolInsets                          // Insets for the center viewport area
 
+    // [Custom] 선택된 기체만 맵에 표시(아이콘/경로)하기 위한 필터.
+    // restrictToTrackedVehicle=false(기본)이면 QGC 원본 동작(연결된 모든 기체 표시) 그대로 유지 → 표준 FlyView 무영향.
+    // CustomFlyView 에서만 true로 켜고 trackedVehicle 에 선택 기체를 주입한다(null이면 아무것도 표시 안 함).
+    // 주의: 델리게이트 바인딩에서는 함수 대신 프로퍼티를 직접 참조해야 trackedVehicle 변경이 의존성으로 추적된다.
+    property bool   restrictToTrackedVehicle:   false
+    property var    trackedVehicle:             null
+
+    // [Custom] 오프라인 편집 플랜(PlanView와 공유하는 planMasterController)의 미션 경로를 FlyView 지도에도 표시.
+    // false(기본)면 표준 QGC 동작 그대로(편집 플랜은 지도에 안 그림) → 표준 FlyView 무영향.
+    // CustomFlyView 에서 고도 프로파일러와 동일 조건(!_droneSelected)으로 true를 주입한다.
+    property bool   showEditPlan:               false
+
     property var    _activeVehicle:             QGroundControl.multiVehicleManager.activeVehicle
     property var    _planMasterController:      planMasterController
     property var    _missionController:         _planMasterController ? _planMasterController.missionController : null
@@ -259,18 +271,58 @@ FlightMap {
         z:          QGroundControl.zOrderTrajectoryLines
         visible:    !pipMode
 
-        Connections {
-            target:                 QGroundControl.multiVehicleManager
-            function onActiveVehicleChanged(activeVehicle) {
-                trajectoryPolyline.path = _activeVehicle ? _activeVehicle.trajectoryPoints.list() : []
-            }
+        // [Custom] 궤적 소스 기체: 필터 ON이면 trackedVehicle, OFF면 표준 activeVehicle.
+        property var _trajectoryVehicle: _root.restrictToTrackedVehicle ? _root.trackedVehicle : _root._activeVehicle
+
+        // [Custom] 시간 기반 롤링 꼬리(trail).
+        // QGC의 vehicle.trajectoryPoints 는 거리/방향전환 기준으로만 점을 만들어(직선 비행 시 2점뿐)
+        // "생성 5초 후 소멸" 같은 시간 기반 꼬리와 맞지 않는다. 그래서 궤적 신호 대신 기체의 현재
+        // 위치(coordinate)를 일정 간격(_sampleMsec)으로 직접 샘플링하고, 각 샘플의 생성 시각을 보관해
+        // 생성 5초(_trailMsec)가 지난 앞쪽 점부터 제거한다. → 비행 중엔 최근 5초 분량의 매끈한 꼬리,
+        // 점 생성이 멈추면(선택해제/착륙/연결끊김) 남은 점이 5초에 걸쳐 자연 소멸.
+        property var    _pointTimes: []
+        readonly property int _trailMsec:  5000
+        readonly property int _sampleMsec: 250
+
+        function _resetTrail() {
+            trajectoryPolyline.path = []
+            trajectoryPolyline._pointTimes = []
         }
 
-        Connections {
-            target:                             _activeVehicle ? _activeVehicle.trajectoryPoints : null
-            onPointAdded: (coordinate) =>       trajectoryPolyline.addCoordinate(coordinate)
-            onUpdateLastPoint: (coordinate) =>  trajectoryPolyline.replaceCoordinate(trajectoryPolyline.pathLength() - 1, coordinate)
-            onPointsCleared:                    trajectoryPolyline.path = []
+        function _sampleTick() {
+            var t   = trajectoryPolyline._pointTimes
+            var now = Date.now()
+            var changed = false
+            // 1) 생성 5초 지난 앞쪽 점부터 제거(롤링 소멸)
+            while (t.length > 0 && (now - t[0]) >= trajectoryPolyline._trailMsec) {
+                trajectoryPolyline.removeCoordinate(0)
+                t.shift()
+                changed = true
+            }
+            // 2) 현재 대상 기체 위치를 샘플로 추가(유효 좌표일 때만)
+            var veh = trajectoryPolyline._trajectoryVehicle
+            if (veh && veh.coordinate.isValid) {
+                trajectoryPolyline.addCoordinate(veh.coordinate)
+                t.push(now)
+                changed = true
+            }
+            if (changed)
+                trajectoryPolyline._pointTimes = t
+        }
+
+        // 대상 기체가 "바뀔 때"만 꼬리 초기화(이전 기체 잔상 제거). null(선택해제)로 갈 땐
+        // 초기화하지 않는다 → 남은 점들이 시간 경과로 5초 내 자연 소멸(설계 의도).
+        on_TrajectoryVehicleChanged: {
+            if (trajectoryPolyline._trajectoryVehicle)
+                trajectoryPolyline._resetTrail()
+        }
+
+        Timer {
+            id:             trajectorySampleTimer
+            interval:       trajectoryPolyline._sampleMsec
+            repeat:         true
+            running:        true
+            onTriggered:    trajectoryPolyline._sampleTick()
         }
     }
 
@@ -283,6 +335,8 @@ FlightMap {
             map:            _root
             size:           pipMode ? ScreenTools.defaultFontPixelHeight : ScreenTools.defaultFontPixelHeight * 3
             z:              QGroundControl.zOrderVehicles
+            // [Custom] 아이콘(위치)은 연결된 모든 기체 표시(원본 동작). 경로는 아래 PlanMapItems가 trackedVehicle로 필터링.
+            visible:        true
         }
     }
     // Add distance sensor view
@@ -311,21 +365,60 @@ FlightMap {
     }
 
     // Add the items associated with each vehicles flight plan to the map
+    // [Custom] Loader.active 로 감싸 선택 기체에 대해서만 PlanMapItems 를 생성한다.
+    // 필터 OFF(restrictToTrackedVehicle=false)면 active 는 항상 true → 원본과 동일하게 모든 기체 경로 표시.
+    // 선택 해제/전환 시 Loader 가 파괴되며 PlanMapItems.onDestruction 의 removeMapItemGroup 로 경로가 깨끗이 제거됨.
     Repeater {
         model: QGroundControl.multiVehicleManager.vehicles
 
-        PlanMapItems {
-            map:                    _root
-            largeMapView:           !pipMode
-            planMasterController:   masterController
-            vehicle:                _vehicle
+        delegate: Loader {
+            id: planLoader
+            active: !_root.restrictToTrackedVehicle || _root.trackedVehicle === object
 
             property var _vehicle: object
 
-            PlanMasterController {
-                id: masterController
-                Component.onCompleted: startStaticActiveVehicle(object)
+            sourceComponent: Component {
+                PlanMapItems {
+                    map:                    _root
+                    largeMapView:           !_root.pipMode
+                    planMasterController:   masterController
+                    // 인라인 Component 내부에서는 델리게이트 role(object)이 안 잡히므로 Loader id로 명시 참조.
+                    vehicle:                planLoader._vehicle
+
+                    PlanMasterController {
+                        id: masterController
+                        Component.onCompleted: startStaticActiveVehicle(planLoader._vehicle)
+                    }
+                }
             }
+        }
+    }
+
+    // [Custom] 오프라인 편집 플랜(공유 planMasterController) 미션 경로를 지도에 표시.
+    //          고도 프로파일러와 동일 데이터 소스(_missionController)로 두 표시를 일치시킨다.
+    //          showEditPlan=false(기본)면 아무것도 그리지 않아 표준 QGC 동작 유지.
+    // 미션 항목(웨이포인트 등) 마커
+    Repeater {
+        model: (showEditPlan && _missionController) ? _missionController.visualItems : 0
+        delegate: MissionItemMapVisual {
+            map:         _root
+            vehicle:     _planMasterController.controllerVehicle
+            interactive: false
+        }
+    }
+    // 웨이포인트 사이 연결선
+    MissionLineView {
+        visible:    showEditPlan
+        model:      (showEditPlan && _missionController) ? _missionController.simpleFlightPathSegments : undefined
+    }
+    // 비행 방향 화살표
+    MapItemView {
+        model: (showEditPlan && _missionController) ? _missionController.directionArrows : undefined
+        delegate: MapLineArrow {
+            fromCoord:      object ? object.coordinate1 : undefined
+            toCoord:        object ? object.coordinate2 : undefined
+            arrowPosition:  3
+            z:              QGroundControl.zOrderWaypointLines + 1
         }
     }
 

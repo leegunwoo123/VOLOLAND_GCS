@@ -1,5 +1,6 @@
 add_subdirectory(AppSettings)
 add_subdirectory(toolbar)
+add_subdirectory(ManagementView)
 
 qt_add_library(MainWindowModule STATIC)
 

@@ -29,7 +29,11 @@ Item {
     property bool   _searchFilter:      searchText.text.trim() != "" || controller.showModifiedOnly  ///< true: showing results of search
     property var    _searchResults      ///< List of parameter names from search results
     property var    _activeVehicle:     QGroundControl.multiVehicleManager.activeVehicle
-    property bool   _showRCToParam:     _activeVehicle.px4Firmware
+    /// USB 분리 등으로 링크는 끊겼으나 QGC가 Vehicle을 유지하는 경우(기본 autoDisconnect=false)
+    readonly property bool _vehicleLinkDown: _activeVehicle && _activeVehicle.vehicleLinkManager
+                                             && (_activeVehicle.vehicleLinkManager.communicationLost
+                                                 || _activeVehicle.vehicleLinkManager.linkNames.length === 0)
+    property bool   _showRCToParam:     _activeVehicle ? _activeVehicle.px4Firmware : false
     property var    _appSettings:       QGroundControl.settingsManager.appSettings
     property var    _controller:        controller
 
@@ -136,10 +140,38 @@ Item {
         }
     }
 
+    Rectangle {
+        id:             linkWarningBanner
+        anchors.left:   parent.left
+        anchors.right:  parent.right
+        anchors.top:    parent.top
+        height:         _vehicleLinkDown ? Math.max(ScreenTools.defaultFontPixelHeight * 2.25, linkWarningLabel.implicitHeight + 12) : 0
+        visible:        height > 0
+        color:          "#6b2a2a"
+        border.width:   1
+        border.color:   "#a94444"
+        z:              100
+        clip:           true
+
+        QGCLabel {
+            id:                 linkWarningLabel
+            anchors.left:       parent.left
+            anchors.right:      parent.right
+            anchors.verticalCenter: parent.verticalCenter
+            anchors.margins:    8
+            horizontalAlignment: Text.AlignHCenter
+            wrapMode:           Text.WordWrap
+            text:               qsTr("통신 두절: 기체와의 링크가 끊겼습니다. 연결을 확인하거나 상단에서 기체 연결을 닫으세요. (목록은 캐시된 파라미터를 보여줄 수 있습니다.)")
+            color:              "white"
+            font.pointSize:     ScreenTools.defaultFontPointSize
+        }
+    }
+
     RowLayout {
         id:             header
         anchors.left:   parent.left
         anchors.right:  parent.right
+        anchors.top:    linkWarningBanner.bottom
 
         RowLayout {
             Layout.alignment:   Qt.AlignLeft
@@ -165,7 +197,7 @@ Item {
                 text:       qsTr("Show modified only")
                 checked:    controller.showModifiedOnly
                 onClicked:  controller.showModifiedOnly = checked
-                visible:    QGroundControl.multiVehicleManager.activeVehicle.px4Firmware
+                visible:    _activeVehicle && _activeVehicle.px4Firmware
             }
         }
 

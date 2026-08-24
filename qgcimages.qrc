@@ -142,7 +142,6 @@
         <file alias="pipHide.svg">src/FlightMap/Images/pipHide.svg</file>
         <file alias="pipResize.svg">src/FlightMap/Images/pipResize.svg</file>
         <file alias="Plan.svg">src/UI/toolbar/Images/Plan.svg</file>
-        <file alias="vololandlogo.svg">src/UI/toolbar/Images/vololandlogo.svg</file>
         <file alias="PlanCreator/BlankPlanCreator.png">src/MissionManager/BlankPlanCreator.png</file>
         <file alias="PlanCreator/CorridorScanPlanCreator.png">src/MissionManager/CorridorScanPlanCreator.png</file>
         <file alias="PlanCreator/StructureScanPlanCreator.png">src/MissionManager/StructureScanPlanCreator.png</file>
@@ -195,6 +194,8 @@
         <file alias="TrackingIcon.svg">src/UI/toolbar/Images/TrackingIcon.svg</file>
         <file alias="TuningComponentIcon.png">src/AutoPilotPlugins/Common/Images/TuningComponentIcon.png</file>
         <file alias="vehicleArrowOpaque.svg">src/FlightMap/Images/vehicleArrowOpaque.svg</file>
+        <file alias="vehicleArrowOpaque_1.png">src/FlightMap/Images/vehicleArrowOpaque_1.png</file>
+        <file alias="vehicleArrowOpaque_2.png">src/FlightMap/Images/vehicleArrowOpaque_2.png</file>
         <file alias="vehicleArrowOutline.svg">src/FlightMap/Images/vehicleArrowOutline.svg</file>
         <file alias="VehicleDown.png">src/AutoPilotPlugins/PX4/Images/VehicleDown.png</file>
         <file alias="VehicleDownRotate.png">src/AutoPilotPlugins/PX4/Images/VehicleDownRotate.png</file>
@@ -218,7 +219,11 @@
         <file alias="ServerDisconnected.png">src/UI/toolbar/Images/ServerDisconnected.png</file>
         <file alias="ServerConnecting.png">src/UI/toolbar/Images/ServerConnecting.png</file>
         <file alias="ServerConnected.png">src/UI/toolbar/Images/ServerConnected.png</file>
-        <!-- UserInfo.png: 수정 후 클린 빌드 또는 이 줄 저장 시 리소스 재포함 -->
         <file alias="UserInfo.png">src/UI/toolbar/Images/UserInfo.png</file>
+        <file alias="PasswordShow.svg">src/UI/toolbar/Images/PasswordShow.svg</file>
+        <file alias="PasswordHide.svg">src/UI/toolbar/Images/PasswordHide.svg</file>
+        <file alias="planviewIcon.png">src/UI/toolbar/Images/planviewIcon.png</file>
+        <file alias="applicationsettingsIcon.png">src/UI/toolbar/Images/applicationsettingsIcon.png</file>
+        <file alias="analyzetoolsIcon.png">src/UI/toolbar/Images/analyzetoolsIcon.png</file>
     </qresource>
 </RCC>

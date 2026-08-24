@@ -24,7 +24,6 @@
 #include <QtCore/QMetaObject>
 #include <QtCore/QRegularExpression>
 #include <QtGui/QFontDatabase>
-#include <QtGui/QIcon>
 #include <QtNetwork/QNetworkProxyFactory>
 #include <QtQml/QQmlApplicationEngine>
 #include <QtQml/QQmlContext>
@@ -79,7 +78,13 @@
 #ifndef QGC_NO_SERIAL_LINK
 #include "FirmwareUpgradeController.h"
 #include "SerialLink.h"
+#include "PortScanner.h"
 #endif
+#include "TngCryptoSettings.h"
+#include "CryptoLinkMonitor.h"
+#include "VideoEndpointSettings.h"
+#include "VideoCryptoSettings.h"
+#include "LoginIdHistory.h"
 
 #ifdef Q_OS_LINUX
 #ifndef Q_OS_ANDROID
@@ -139,7 +144,7 @@ QGCApplication::QGCApplication(int &argc, char *argv[], bool unitTesting, bool s
 #ifdef QGC_DAILY_BUILD
         // This gives daily builds their own separate settings space. Allowing you to use daily and stable builds
         // side by side without daily screwing up your stable settings.
-        applicationName = QStringLiteral("%1 Daily").arg(QGC_APP_NAME);
+        applicationName = QStringLiteral("%1 Dev").arg(QGC_APP_NAME);
 #else
         applicationName = QGC_APP_NAME;
 #endif
@@ -148,9 +153,6 @@ QGCApplication::QGCApplication(int &argc, char *argv[], bool unitTesting, bool s
     setOrganizationName(QGC_ORG_NAME);
     setOrganizationDomain(QGC_ORG_DOMAIN);
     setApplicationVersion(QString(QGC_APP_VERSION_STR));
-#ifdef Q_OS_LINUX
-    setWindowIcon(QIcon(":/res/qgroundcontrol.ico"));
-#endif
 
     // Set settings format
     QSettings::setDefaultFormat(QSettings::IniFormat);
@@ -302,7 +304,13 @@ void QGCApplication::init()
     qmlRegisterUncreatableType<VehicleComponent>("QGroundControl.AutoPilotPlugin", 1, 0, "VehicleComponent", "Reference only");
 #ifndef QGC_NO_SERIAL_LINK
     qmlRegisterType<FirmwareUpgradeController>("QGroundControl.Controllers", 1, 0, "FirmwareUpgradeController");
+    PortScanner::registerQmlTypes();
 #endif
+    TngCryptoSettings::registerQmlTypes();
+    CryptoLinkMonitor::registerQmlTypes();
+    VideoEndpointSettings::registerQmlTypes();
+    VideoCryptoSettings::registerQmlTypes();
+    LoginIdHistory::registerQmlTypes();
     qmlRegisterType<JoystickConfigController>("QGroundControl.Controllers", 1, 0, "JoystickConfigController");
 
     (void) qmlRegisterSingletonType<ShapeFileHelper>("QGroundControl.ShapeFileHelper", 1, 0, "ShapeFileHelper", [](QQmlEngine *, QJSEngine *) { return new ShapeFileHelper(); });

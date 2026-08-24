@@ -22,10 +22,19 @@ Popup {
     property string userRole: ""
     property string loginTime: ""
 
+    // UI only — 세션 연동 전
+    signal logoutClicked()
+
     property real _contentMargin: ScreenTools.defaultFontPixelHeight / 2
-    property real _popupWidth: 360
-    property real _popupHeight: 280
+    property real _edgeMargin: ScreenTools.defaultFontPixelHeight
     property real _belowToolbarMargin: 8
+    property real _idealWidth: ScreenTools.defaultFontPixelWidth * 34
+    property real _idealHeight: ScreenTools.defaultFontPixelHeight * 14
+    property real _popupWidth: Math.min(_idealWidth, Math.max(0, root.width - _edgeMargin * 2))
+    property real _popupHeight: Math.min(
+        _idealHeight,
+        Math.max(0, root.height - ScreenTools.toolbarHeight - _belowToolbarMargin - _edgeMargin)
+    )
 
     function _roleDisplayText() {
         if (userRole === "슈퍼관리자" || userRole === "관리자" || userRole === "사용자")
@@ -39,16 +48,19 @@ Popup {
     }
 
     Rectangle {
-        anchors.top: parent.top
-        anchors.topMargin: ScreenTools.toolbarHeight + root._belowToolbarMargin
-        anchors.right: parent.right
-        anchors.rightMargin: CustomToolbarMetrics.horizontalMargin
+        // 우측 정렬이어도 root 밖으로 나가지 않도록 clamp
+        x: Math.max(root._edgeMargin, root.width - width - CustomToolbarMetrics.horizontalMargin)
+        y: Math.min(
+            ScreenTools.toolbarHeight + root._belowToolbarMargin,
+            Math.max(root._edgeMargin, root.height - height - root._edgeMargin)
+        )
         width: root._popupWidth
         height: root._popupHeight
         color: qgcPal.windowShade
         radius: 4
         border.width: 1
         border.color: qgcPal.windowShadeLight
+        clip: true
 
         ColumnLayout {
             anchors.fill: parent
@@ -127,6 +139,7 @@ Popup {
                         text: qsTr("로그아웃")
                         Layout.fillWidth: true
                         onClicked: {
+                            root.logoutClicked()
                             if (typeof mainWindow !== "undefined" && typeof mainWindow.onLogout === "function")
                                 mainWindow.onLogout()
                             root.close()

@@ -25,7 +25,6 @@
 #include "DroneModel/DroneManager.h"
 #include "DroneModel/DroneModel.h"
 
-
 #if !defined(Q_OS_ANDROID) && !defined(Q_OS_IOS)
     #include <QtWidgets/QMessageBox>
     #include "RunGuard.h"
@@ -153,6 +152,10 @@ int main(int argc, char *argv[])
     // tip: the domain can be cross-checked on the command line with <defaults domains>
     QProcess::execute("defaults", {"write org.qgroundcontrol.qgroundcontrol NSAppSleepDisabled -bool YES"});
 #endif
+
+    // 다중 최상위 창(예: MultiView 창)에서 qml6glsink(GstGLQt6VideoItem) OpenGL 렌더링을 위해 창 간 GL 컨텍스트 공유 활성화.
+    // 미설정 시 별도 창의 GstGLQt6VideoItem은 GStreamer GL 텍스처를 공유받지 못해 화면이 렌더되지 않는다(파이프라인은 정상).
+    QCoreApplication::setAttribute(Qt::AA_ShareOpenGLContexts);
 
 #ifdef Q_OS_WIN
     // Set our own OpenGL buglist

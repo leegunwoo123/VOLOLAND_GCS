@@ -133,13 +133,18 @@ QStringList PX4FirmwarePlugin::flightModes(Vehicle* vehicle) const
 
 QString PX4FirmwarePlugin::flightMode(uint8_t base_mode, uint32_t custom_mode) const
 {
-    QString flightMode = "Unknown";
-
+    // PX4 fills custom_mode with the current nav state in HEARTBEAT, but base_mode flags
+    // (including MAV_MODE_FLAG_CUSTOM_MODE_ENABLED) can differ while disarmed vs armed.
+    // Decoding only when CUSTOM_MODE_ENABLED is set makes the UI "change mode" on arm
+    // even though custom_mode is unchanged — so prefer a known custom_mode mapping first.
+    if (_modeEnumToString.contains(custom_mode)) {
+        return _modeEnumToString.value(custom_mode);
+    }
     if (base_mode & MAV_MODE_FLAG_CUSTOM_MODE_ENABLED) {
-        return _modeEnumToString.value(custom_mode, tr("Unknown %1:%2").arg(base_mode).arg(custom_mode));
+        return tr("Unknown %1:%2").arg(base_mode).arg(custom_mode);
     }
 
-    return flightMode;
+    return tr("Unknown");
 }
 
 bool PX4FirmwarePlugin::setFlightMode(const QString& flightMode, uint8_t* base_mode, uint32_t* custom_mode) const
@@ -340,13 +345,20 @@ void PX4FirmwarePlugin::_mavCommandResult(int vehicleId, int component, int comm
 
 void PX4FirmwarePlugin::guidedModeTakeoff(Vehicle* vehicle, double takeoffAltRel) const
 {
-    double vehicleAltitudeAMSL = vehicle->altitudeAMSL()->rawValue().toDouble();
+    // Sanity: need a position fix (same check as before — relies on AMSL from GLOBAL_POSITION / GPS).
+    const double vehicleAltitudeAMSL = vehicle->altitudeAMSL()->rawValue().toDouble();
     if (qIsNaN(vehicleAltitudeAMSL)) {
         qgcApp()->showAppMessage(tr("Unable to takeoff, vehicle position not known."));
         return;
     }
 
-    double takeoffAltAMSL = takeoffAltRel + vehicleAltitudeAMSL;
+    // MAV_CMD_NAV_TAKEOFF param7: meters above home / takeoff reference (same convention as APMFirmwarePlugin).
+    // Sending AMSL (takeoffAltRel + vehicleAltitudeAMSL) produced values like ~498 when GPS AMSL ~488 and UI asked 10 m,
+    // which PX4 treats as a relative altitude setpoint → extreme climb. Use relative altitude only.
+    double relAlt = minimumTakeoffAltitudeMeters(vehicle);
+    if (!qIsNaN(takeoffAltRel) && takeoffAltRel > relAlt) {
+        relAlt = takeoffAltRel;
+    }
 
     connect(vehicle, &Vehicle::mavCommandResult, this, &PX4FirmwarePlugin::_mavCommandResult);
     vehicle->sendMavCommand(
@@ -356,7 +368,7 @@ void PX4FirmwarePlugin::guidedModeTakeoff(Vehicle* vehicle, double takeoffAltRel
         -1,                                     // No pitch requested
         0, 0,                                   // param 2-4 unused
         NAN, NAN, NAN,                          // No yaw, lat, lon
-        static_cast<float>(takeoffAltAMSL));    // AMSL altitude
+        static_cast<float>(relAlt));            // altitude above home (m)
 }
 
 double PX4FirmwarePlugin::maximumHorizontalSpeedMultirotor(Vehicle* vehicle) const

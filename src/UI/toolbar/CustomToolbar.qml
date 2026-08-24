@@ -14,8 +14,12 @@ Rectangle {
     height: ScreenTools.toolbarHeight
     implicitHeight: ScreenTools.toolbarHeight
 
-    /// true면 Plan 뷰용 "< Return" 표시, false면 Fly 뷰용 로고. 툴바 하나로 통일
     property bool showPlanReturnButton: false
+    property var  returnAction: function() { mainWindow.showCustomFlyView() }
+
+    // UI only — 세션/인증 연동 전 분기 플래그
+    property bool userLoggedIn: false
+    property string _stubUserId: ""
 
     QGCPalette { id: qgcPal; colorGroupEnabled: enabled }
     color: qgcPal.toolbarBackground
@@ -27,9 +31,11 @@ Rectangle {
 
     // 우측 블록 고정 너비 (앵커 배치용). RowLayout 재계산과 무관하게 항상 동일
     readonly property real _rightBlockWidth: CustomToolbarMetrics.horizontalMargin
-        + root.height
+        + root.height                       // Connection State
         + CustomToolbarMetrics.spacing
-        + root.height
+        + root.height                       // MultiView 버튼
+        + CustomToolbarMetrics.spacing
+        + root.height                       // UserInfo
         + CustomToolbarMetrics.spacing
         + (windowControlButtons.visible ? (3 * CustomToolbarMetrics.windowControlButtonSize + 2 * CustomToolbarMetrics.windowControlButtonsSpacing) : 0)
         + CustomToolbarMetrics.horizontalMargin
@@ -43,28 +49,37 @@ Rectangle {
 
         ToolButton {
             id: toolSelectBtn
-            Layout.alignment: Qt.AlignVCenter
+            Layout.alignment: Qt.AlignVCenter | Qt.AlignLeft
+            padding: 0
             visible: !root.showPlanReturnButton
-            implicitWidth: CustomToolbarMetrics.toolButtonSize
-            implicitHeight: CustomToolbarMetrics.toolButtonSize
+            readonly property real logoHeight: CustomToolbarMetrics.toolButtonSize * 0.6
+            readonly property real logoWidth: (logoImage.status === Image.Ready && logoImage.implicitHeight > 0)
+                ? logoImage.implicitWidth * logoHeight / logoImage.implicitHeight
+                : 0
+            implicitWidth: logoWidth
+            implicitHeight: logoHeight
+            width: logoWidth
+            height: logoHeight
+            Layout.preferredWidth: logoWidth
+            Layout.preferredHeight: logoHeight
+            Layout.maximumWidth: logoWidth
+            Layout.maximumHeight: logoHeight
             background: Rectangle { color: "transparent" }
-            contentItem: Item {
-                anchors.fill: parent
-                Image {
-                    anchors.centerIn: parent
-                    source: "qrc:/qmlimages/vololandlogo.svg"
-                    fillMode: Image.PreserveAspectFit
-                    smooth: true
-                    mipmap: true
-                    width: parent.height
-                    height: parent.height
-                }
+            contentItem: Image {
+                id: logoImage
+                source: "/res/VololandWhite.svg"
+                fillMode: Image.PreserveAspectFit
+                smooth: true
+                mipmap: true
+                width: toolSelectBtn.logoWidth
+                height: toolSelectBtn.logoHeight
+                sourceSize.width: width
+                sourceSize.height: height
             }
             z: 1
             onClicked: mainWindow.showToolSelectDialog()
         }
 
-        // RowLayout 자식에는 anchors 사용 불가 → Item으로 감싸고 내부에 Row + MouseArea
         Item {
             id: returnButtonRow
             Layout.alignment: Qt.AlignVCenter
@@ -77,14 +92,20 @@ Rectangle {
                 id: returnLabelsRow
                 anchors.centerIn: parent
                 spacing: ScreenTools.defaultFontPixelWidth / 2
-                QGCLabel { font.pointSize: ScreenTools.largeFontPointSize; text: "<" }
-                QGCLabel { text: qsTr("Return"); font.pointSize: ScreenTools.largeFontPointSize }
+                Image {
+                    anchors.verticalCenter: parent.verticalCenter
+                    source: "/res/BackArrowWhite.svg"
+                    fillMode: Image.PreserveAspectFit
+                    smooth: true
+                    mipmap: true
+                    height: ScreenTools.largeFontPixelHeight
+                }
             }
             MouseArea {
                 anchors.fill: parent
                 z: 1001
                 preventStealing: true
-                onClicked: mainWindow.showCustomFlyView()
+                onClicked: root.returnAction()
                 onPressed: (mouse) => { mouse.accepted = true }
             }
         }
@@ -95,7 +116,6 @@ Rectangle {
         }
     }
 
-    // 우측 블록: RowLayout 밖에서 앵커로 고정 → Fly/Plan 전환 시 왼쪽만 바뀌고 아이콘 위치 불변
     Item {
         id: rightBlock
         anchors.right: parent.right
@@ -114,37 +134,37 @@ Rectangle {
                 Layout.fillWidth: true
             }
 
-            Item {
-                id: serverConnectionIcon
+            // ConnectionState
+            CryptoAlertIndicator {
+                id: cryptoAlertIndicator
                 Layout.preferredWidth: root.height
                 Layout.preferredHeight: root.height
                 Layout.alignment: Qt.AlignVCenter
-                visible: true
-
-                Image {
+            }
+/*
+            // 멀티뷰
+            Item {
+                id: multiViewButton
+                Layout.preferredWidth: root.height
+                Layout.preferredHeight: root.height
+                Layout.alignment: Qt.AlignVCenter
+                QGCColoredImage {
                     anchors.centerIn: parent
-                    width: root.height
-                    height: root.height
+                    width: root.height * 0.55
+                    height: root.height * 0.55
                     fillMode: Image.PreserveAspectFit
-                    smooth: true
-                    mipmap: true
-                    source: {
-                        if (mainWindow.serverConnectionStatus === 0) return "qrc:/qmlimages/ServerConnected.png"
-                        if (mainWindow.serverConnectionStatus === 1) return "qrc:/qmlimages/ServerConnecting.png"
-                        return "qrc:/qmlimages/ServerDisconnected.png"
-                    }
+                    source: "qrc:/qmlimages/camera_video.svg"
+                    color: multiViewMouse.containsMouse ? "#00BFFF" : "white"
                 }
-
                 MouseArea {
+                    id: multiViewMouse
                     anchors.fill: parent
+                    hoverEnabled: true
                     cursorShape: Qt.PointingHandCursor
-                    onClicked: {
-                        if (serverSettingsPopupComponent.status === Component.Ready)
-                            serverSettingsPopupComponent.createObject(mainWindow).open()
-                    }
+                    onClicked: multiViewWindow.openWindow()
                 }
             }
-
+*/
             Item {
                 id: userInfoIcon
                 Layout.preferredWidth: root.height
@@ -164,20 +184,53 @@ Rectangle {
                     anchors.fill: parent
                     cursorShape: Qt.PointingHandCursor
                     onClicked: {
-                        if (userInfoPopupComponent.status === Component.Ready)
-                            userInfoPopupComponent.createObject(mainWindow).open()
+                        if (root.userLoggedIn) {
+                            if (userInfoPopupComponent.status === Component.Ready) {
+                                var infoPopup = userInfoPopupComponent.createObject(mainWindow, {
+                                    "userId": root._stubUserId,
+                                    "userRole": qsTr("사용자")
+                                })
+                                infoPopup.open()
+                            }
+                        } else if (loginPopupComponent.status === Component.Ready) {
+                            loginPopupComponent.createObject(mainWindow).open()
+                        }
                     }
                 }
             }
 
             Component {
-                id: serverSettingsPopupComponent
-                ServerSettingsPopup { }
+                id: loginPopupComponent
+                LoginPopup {
+                    onLoginClicked: (userId, password, saveLoginInfo) => {
+                        // UI stub — 검증/서버 없이 유저정보 창으로 전환
+                        var trimmedId = userId.trim()
+                        root._stubUserId = trimmedId.length > 0 ? trimmedId : qsTr("사용자")
+                        root.userLoggedIn = true
+                        if (saveLoginInfo && trimmedId.length > 0)
+                            QGroundControl.loginIdHistory.remember(trimmedId)
+                        else
+                            QGroundControl.loginIdHistory.clear()
+                        close()
+                        if (userInfoPopupComponent.status === Component.Ready) {
+                            var infoPopup = userInfoPopupComponent.createObject(mainWindow, {
+                                "userId": root._stubUserId,
+                                "userRole": qsTr("사용자")
+                            })
+                            infoPopup.open()
+                        }
+                    }
+                }
             }
 
             Component {
                 id: userInfoPopupComponent
-                UserInfoPopup { }
+                UserInfoPopup {
+                    onLogoutClicked: {
+                        root.userLoggedIn = false
+                        root._stubUserId = ""
+                    }
+                }
             }
 
             RowLayout {
@@ -256,5 +309,8 @@ Rectangle {
             }
         }
     }
+
+    // 멀티뷰 그리드 이동창
+    MultiViewWindow { id: multiViewWindow }
 }
 

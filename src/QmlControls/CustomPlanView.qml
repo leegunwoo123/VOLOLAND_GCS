@@ -26,7 +26,7 @@ Item {
     Rectangle {
         anchors.fill: parent
         z: -1
-        color: "#1a1a1a"
+        color: root._panelBgColor
     }
 
     property var    planMasterController
@@ -42,10 +42,9 @@ Item {
     property var    _rallyPointController:              _planMasterController ? _planMasterController.rallyPointController : null
     property var    _appSettings:                      QGroundControl.settingsManager.appSettings
 
-    /// CustomFlyView station status와 동일한 너비 규칙 (값만 맞춤, 전달받지 않음)
-    readonly property real _sidebarWidth:               (typeof mainWindow !== "undefined" ? mainWindow.width * 0.20 : 350)
-    readonly property real _sidebarMaxWidth:            350 * 1.25
-    readonly property real _missionPanelPreferredWidth: Math.min(_sidebarWidth, _sidebarMaxWidth)
+    /// mainWindow.sidebarTargetWidth(SSoT)를 참조하여 CustomFlyView leftPanel과 동일한 너비 규칙 유지
+    readonly property real _panelHorizontalMargins:     4
+    readonly property real _missionPanelPreferredWidth: Math.max(0, mainWindow.sidebarTargetWidth - _panelHorizontalMargins)
 
     readonly property int   _decimalPlaces:              8
     readonly property real  _margin:                     ScreenTools.defaultFontPixelHeight * 0.5
@@ -64,8 +63,113 @@ Item {
     readonly property int   _layerRallyPoints:           3
     readonly property int   _layerUTMSP:                 4
     property bool           _waypointAddMode:            false
+    property bool           _addROIOnClick:              false
     /// 로컬/서버 목록 또는 파일 다이얼로그에서 선택한 파일 이름 (단일 소스)
     property string         selectedPlanPath:            ""
+
+    readonly property color _panelBgColor:       "#1a1a1a"
+    readonly property color _panelCardColor:     "#252525"
+    readonly property color _panelItemColor:     "#151515"
+    readonly property color _panelFieldColor:    "#2a2a2a"
+    readonly property color _panelHoverColor:    "#2f2f2f"
+    readonly property color _panelBorderColor:   "#333333"
+    readonly property color _panelBorderLight:   "#3a3a3a"
+    readonly property color _panelAccentColor:   "#00BFFF"
+    readonly property color _panelTextColor:     "#e0e0e0"
+    readonly property color _panelMutedTextColor:"#AAAAAA"
+    readonly property real  _missionActionButtonHeight: ScreenTools.implicitButtonHeight
+
+    component PanelButton: Button {
+        id: control
+
+        property bool danger: false
+
+        Layout.preferredHeight: root._missionActionButtonHeight
+        padding:                ScreenTools.defaultFontPixelWidth
+        font.family:            ScreenTools.normalFontFamily
+        font.pointSize:         ScreenTools.defaultFontPointSize
+        font.bold:              checked
+
+        contentItem: QGCLabel {
+            text:                   control.text
+            color:                  !control.enabled ? root._panelMutedTextColor : "#ffffff"
+            font:                   control.font
+            horizontalAlignment:    Text.AlignHCenter
+            verticalAlignment:      Text.AlignVCenter
+            elide:                  Text.ElideRight
+        }
+
+        background: Rectangle {
+            radius:         ScreenTools.defaultFontPixelWidth * 0.55
+            color:          !control.enabled ? root._panelCardColor
+                            : control.down ? (control.danger ? "#5a2a2a" : root._panelFieldColor)
+                            : control.checked ? root._panelFieldColor
+                            : control.hovered ? (control.danger ? "#5a2a2a" : root._panelHoverColor)
+                            : root._panelCardColor
+            border.color:   control.checked ? root._panelAccentColor
+                            : control.danger ? "#5a2a2a"
+                            : root._panelBorderLight
+            border.width:   1
+        }
+    }
+
+    component PanelTextField: TextField {
+        id: control
+
+        Layout.preferredHeight: ScreenTools.defaultFontPixelHeight * 2.1
+        leftPadding:            ScreenTools.defaultFontPixelWidth
+        rightPadding:           ScreenTools.defaultFontPixelWidth
+        color:                  "#ffffff"
+        selectionColor:         root._panelAccentColor
+        selectedTextColor:      "#ffffff"
+        placeholderTextColor:   root._panelMutedTextColor
+        font.family:            ScreenTools.normalFontFamily
+        font.pointSize:         ScreenTools.defaultFontPointSize
+
+        background: Rectangle {
+            radius:         ScreenTools.defaultFontPixelWidth * 0.45
+            color:          root._panelFieldColor
+            border.color:   control.activeFocus ? root._panelAccentColor : "#444444"
+            border.width:   1
+        }
+    }
+
+    component PanelTabButton: TabButton {
+        id: control
+
+        topPadding:     Math.round(ScreenTools.defaultFontPixelHeight * 0.45)
+        bottomPadding:  topPadding
+        leftPadding:    ScreenTools.defaultFontPixelWidth
+        rightPadding:   ScreenTools.defaultFontPixelWidth
+        font.family:    ScreenTools.normalFontFamily
+        font.pointSize: ScreenTools.defaultFontPointSize
+        font.bold:      checked
+
+        contentItem: QGCLabel {
+            text:                   control.text
+            color:                  !control.enabled ? root._panelMutedTextColor : "#ffffff"
+            font:                   control.font
+            horizontalAlignment:    Text.AlignHCenter
+            verticalAlignment:      Text.AlignVCenter
+            elide:                  Text.ElideRight
+        }
+
+        background: Rectangle {
+            radius:         ScreenTools.defaultFontPixelWidth * 0.45
+            color:          !control.enabled ? root._panelCardColor
+                            : control.checked ? root._panelFieldColor
+                            : control.hovered ? root._panelHoverColor
+                            : root._panelCardColor
+            border.color:   control.checked ? root._panelAccentColor : root._panelBorderLight
+            border.width:   1
+        }
+    }
+
+    readonly property var  _qgcVehicle:    QGroundControl.multiVehicleManager.activeVehicle
+    readonly property bool _hasQgcVehicle: _qgcVehicle !== null && _qgcVehicle !== undefined
+    readonly property bool _singleComplexItem: _missionController &&
+                                               _missionController.complexMissionItemNames &&
+                                               _missionController.complexMissionItemNames.length === 1
 
     function mapCenter() {
         if (!editorMap) return QtPositioning.coordinate()
@@ -75,10 +179,38 @@ Item {
         coordinate.altitude  = coordinate.altitude.toFixed(_decimalPlaces)
         return coordinate
     }
+    function _fileNameFromPath(path) {
+        var normalized = String(path || "").replace(/\\/g, "/")
+        var segments = normalized.split("/").filter(function(s) { return s.length > 0 })
+        return segments.length > 0 ? segments[segments.length - 1] : normalized
+    }
+    function _stripFileExtension(fileName) {
+        var name = String(fileName || "")
+        var dotIndex = name.lastIndexOf(".")
+        return dotIndex > 0 ? name.substring(0, dotIndex) : name
+    }
+    function _displayNameFromPath(path) {
+        return _stripFileExtension(_fileNameFromPath(path))
+    }
     function insertSimpleItemAfterCurrent(coordinate) {
         if (!_missionController) return
         var nextIndex = _missionController.currentPlanViewVIIndex + 1
         _missionController.insertSimpleMissionItem(coordinate, nextIndex, true)
+    }
+    function insertROIAfterCurrent(coordinate) {
+        if (!_missionController) return
+        var nextIndex = _missionController.currentPlanViewVIIndex + 1
+        _missionController.insertROIMissionItem(coordinate, nextIndex, true)
+    }
+    function insertCancelROIAfterCurrent() {
+        if (!_missionController) return
+        var nextIndex = _missionController.currentPlanViewVIIndex + 1
+        _missionController.insertCancelROIMissionItem(nextIndex, true)
+    }
+    function insertComplexItemAfterCurrent(complexItemName) {
+        if (!_missionController) return
+        var nextIndex = _missionController.currentPlanViewVIIndex + 1
+        _missionController.insertComplexMissionItem(complexItemName, mapCenter(), nextIndex, true)
     }
     function insertTakeoffItemAfterCurrent() {
         if (!_missionController) return
@@ -161,17 +293,18 @@ Item {
         id: serverPlanListModel
     }
 
-    /// 현재 그려진 경로(계획) 삭제 — QGC removeAll 기반, Mission Start만 남김
+    /// 현재 그려진 경로(계획) 삭제 — 편집기 + 기체 미션 모두 삭제 (FlyView 지도/하단 바 동시 초기화)
     function clearDrawnPlan() {
         if (!_planMasterController) return
         mainWindow.showMessageDialog(qsTr("삭제"),
                                      qsTr("현재 그려진 경로를 모두 삭제하시겠습니까?"),
                                      Dialog.Yes | Dialog.Cancel,
-                                     function() {
-                                         _planMasterController.removeAll()
-                                         if (_missionController)
-                                             _missionController.setCurrentPlanViewSeqNum(0, true)
-                                     })
+                                 function() {
+                                     _planMasterController.removeAll()
+                                     if (_missionController)
+                                         _missionController.setCurrentPlanViewSeqNum(0, true)
+                                     root.selectedPlanPath = ""
+                                 })
     }
 
     QGCFileDialog {
@@ -185,20 +318,14 @@ Item {
                 if (_missionController)
                     _missionController.setCurrentPlanViewSeqNum(0, true)
             }
-            var path = file.toString()
-            var normalized = path.replace(/\\/g, "/")
-            var segments = normalized.split("/").filter(function(s) { return s.length > 0 })
-            root.selectedPlanPath = segments.length > 0 ? segments[segments.length - 1] : path
+            root.selectedPlanPath = root._displayNameFromPath(file.toString())
             close()
         }
         onAcceptedForSave: (file) => {
             if (_planMasterController) {
                 _planMasterController.saveToFile(file)
             }
-            var path = file.toString()
-            var normalized = path.replace(/\\/g, "/")
-            var segments = normalized.split("/").filter(function(s) { return s.length > 0 })
-            root.selectedPlanPath = segments.length > 0 ? segments[segments.length - 1] : path
+            root.selectedPlanPath = root._displayNameFromPath(file.toString())
             close()
         }
     }
@@ -261,7 +388,7 @@ Item {
         Rectangle {
             anchors.fill: parent
             z: -1
-            color: "#1a1a1a"
+            color: root._panelBgColor
         }
 
         RowLayout {
@@ -300,7 +427,12 @@ Item {
                 if (_utmspEnabled) QGroundControl.utmspManager.utmspVehicle.updateLastCoordinates(coordinate.latitude, coordinate.longitude)
                 switch (_editingLayer) {
                 case _layerMission:
-                    if (root._waypointAddMode) insertSimpleItemAfterCurrent(coordinate)
+                    if (root._waypointAddMode) {
+                        insertSimpleItemAfterCurrent(coordinate)
+                    } else if (root._addROIOnClick) {
+                        insertROIAfterCurrent(coordinate)
+                        root._addROIOnClick = false
+                    }
                     break
                 case _layerRallyPoints:
                     if (_rallyPointController && _rallyPointController.supported && root._waypointAddMode) _rallyPointController.addPoint(coordinate)
@@ -420,13 +552,258 @@ Item {
             usePlannedHomePosition: true
             planMasterController: _planMasterController
         }
+
+        PanelButton {
+            id: centerMapBtn
+            anchors.top: parent.top
+            anchors.right: parent.right
+            anchors.topMargin: ScreenTools.defaultFontPixelHeight
+            anchors.rightMargin: ScreenTools.defaultFontPixelHeight
+            z: QGroundControl.zOrderWidgets
+            text: qsTr("Center")
+            onClicked: centerMapPopup.open()
+        }
+
+        Popup {
+            id: centerMapPopup
+            parent: centerMapBtn
+            x: -width + centerMapBtn.width
+            y: centerMapBtn.height + ScreenTools.defaultFontPixelHeight * 0.25
+            modal: false
+            focus: true
+            closePolicy: Popup.CloseOnEscape | Popup.CloseOnReleaseOutside
+            padding: ScreenTools.defaultFontPixelWidth
+            background: Rectangle {
+                color: root._panelCardColor
+                radius: ScreenTools.defaultFontPixelWidth * 0.45
+                border.color: root._panelBorderLight
+                border.width: 1
+            }
+            contentItem: ColumnLayout {
+                spacing: ScreenTools.defaultFontPixelWidth * 0.5
+                QGCLabel {
+                    text: qsTr("Center map on:")
+                    color: root._panelTextColor
+                }
+                PanelButton {
+                    text: qsTr("Mission")
+                    Layout.fillWidth: true
+                    onClicked: {
+                        centerMapPopup.close()
+                        mapFitFunctions.fitMapViewportToMissionItems()
+                    }
+                }
+                PanelButton {
+                    text: qsTr("All items")
+                    Layout.fillWidth: true
+                    onClicked: {
+                        centerMapPopup.close()
+                        mapFitFunctions.fitMapViewportToAllItems()
+                    }
+                }
+                PanelButton {
+                    text: qsTr("Launch")
+                    Layout.fillWidth: true
+                    onClicked: {
+                        centerMapPopup.close()
+                        editorMap.center = mapFitFunctions.fitHomePosition()
+                    }
+                }
+                PanelButton {
+                    text: qsTr("Vehicle")
+                    Layout.fillWidth: true
+                    enabled: globals.activeVehicle && globals.activeVehicle.coordinate.isValid
+                    onClicked: {
+                        centerMapPopup.close()
+                        editorMap.center = globals.activeVehicle.coordinate
+                    }
+                }
+                PanelButton {
+                    text: qsTr("Current Location")
+                    Layout.fillWidth: true
+                    enabled: editorMap.gcsPosition.isValid
+                    onClicked: {
+                        centerMapPopup.close()
+                        editorMap.center = editorMap.gcsPosition
+                    }
+                }
+                PanelButton {
+                    text: qsTr("Specified Location")
+                    Layout.fillWidth: true
+                    onClicked: {
+                        centerMapPopup.close()
+                        editorMap.centerToSpecifiedLocation()
+                    }
+                }
+            }
+        }
+
+        Item {
+            id: planWpProgressBar
+            anchors.left:   parent.left
+            anchors.right:  parent.right
+            anchors.bottom: parent.bottom
+            // FlyView(_hasMissionProgress)와 동일 기준: WP가 있으면 *4, 없으면 *1.2로 축소
+            height: (root._planMasterController
+                     && root._planMasterController.missionController
+                     && root._planMasterController.missionController.visualItems
+                     && root._planMasterController.missionController.visualItems.count > 1)
+                    ? ScreenTools.defaultFontPixelHeight * 4 : ScreenTools.defaultFontPixelHeight * 1.2
+            z: 10
+
+            Rectangle {
+                anchors.fill: parent
+                color: qgcPal.window
+                opacity: 0.85
+                radius: 4
+                border.color: qgcPal.windowShade
+                border.width: 1
+            }
+
+            // 각 WP의 고도(altPercent) 변경 감시 → 리페인트
+            Repeater {
+                model: root._planMasterController
+                       ? root._planMasterController.missionController.visualItems : null
+                delegate: Item {
+                    width: 0; height: 0
+                    Connections {
+                        target: object
+                        function onAltPercentChanged() { planPositionVisual.requestPaint() }
+                    }
+                }
+            }
+
+            Canvas {
+                id: planPositionVisual
+                anchors.fill: parent
+                anchors.margins: ScreenTools.defaultFontPointSize
+
+                onTotalWpCountChanged:   requestPaint()
+                onCurrentWpIndexChanged: requestPaint()
+
+                Connections {
+                    target: root._planMasterController ? root._planMasterController.missionController.visualItems : null
+                    function onCountChanged() { planPositionVisual.requestPaint() }
+                }
+
+                // 미션 고도 범위/홈 고도 변경 시 y축 라벨·도트 갱신
+                Connections {
+                    target: planPositionVisual._missionController
+                    ignoreUnknownSignals: true
+                    function onMaxAMSLAltitudeChanged()    { planPositionVisual.requestPaint() }
+                    function onMinAMSLAltitudeChanged()    { planPositionVisual.requestPaint() }
+                    function onPlannedHomePositionChanged() { planPositionVisual.requestPaint() }
+                }
+
+                // visualItems[0]은 항상 홈/설정 아이템이므로 -1 처리
+                property var _visualItems:   root._planMasterController
+                                             ? root._planMasterController.missionController.visualItems : null
+                property var _missionController: root._planMasterController
+                                             ? root._planMasterController.missionController : null
+                property int totalWpCount:   root._planMasterController
+                                             ? Math.max(0, root._planMasterController.missionController.visualItems.count - 1) : 0
+                property int currentWpIndex: -1  // PlanView에서는 현재 비행 WP 강조 없음
+
+                onPaint: {
+                    var ctx = getContext("2d");
+                    ctx.clearRect(0, 0, width, height);
+
+                    if (totalWpCount < 2) return;
+
+                    // 수평 레이아웃: 좌측=y축 고도(m) 라벨 영역, 나머지=프로파일
+                    var uiUnit     = ScreenTools.defaultFontPixelHeight;  // UI 크기 기준 단위
+                    var fontPx     = uiUnit * 0.85;                       // 번호 폰트
+                    var axisFont   = uiUnit * 0.7;                        // y축 라벨 폰트
+                    var dotRadius  = uiUnit * 0.32;                       // 도트 반지름
+                    var leftPad    = uiUnit * 2.6;                        // y축 라벨 영역 폭
+                    var rightPad   = uiUnit * 1.2;
+                    var drawWidth  = Math.max(1, width - leftPad - rightPad);
+                    var stepX      = drawWidth / (totalWpCount - 1);
+
+                    // 세로 레이아웃: 상단=번호 레이블 / 하단=고도 프로파일 (겹침 방지)
+                    var labelBaseY = fontPx * 0.8;                        // 번호를 더 위로
+                    var dotTopY    = labelBaseY + dotRadius + uiUnit * 0.2; // 프로파일 상단을 위로 → 라벨 간격 확대
+                    var dotBottomY = height - dotRadius - uiUnit * 0.1;    // 하단 여백 축소 → 라벨 간격 확대
+                    var dotDrawH   = Math.max(1, dotBottomY - dotTopY);
+
+                    // 고도(홈 기준 상대고도 m): rel = amslEntryAlt - homeAMSL, 최대 = maxAMSLAltitude - homeAMSL
+                    var mc       = _missionController;
+                    var homeAmsl = (mc && mc.plannedHomePosition && !isNaN(mc.plannedHomePosition.altitude))
+                                   ? mc.plannedHomePosition.altitude : 0;
+                    var maxRel   = mc ? (mc.maxAMSLAltitude - homeAmsl) : 0;
+                    if (!(maxRel > 0)) maxRel = 0;
+
+                    // 각 WP 상대고도 수집 (visualItems[0]=홈 제외, 인덱스 1부터)
+                    var relAlts = [];
+                    for (var k = 0; k < totalWpCount; k++) {
+                        var itm  = _visualItems ? _visualItems.get(k + 1) : null;
+                        var amsl = (itm && !isNaN(itm.amslEntryAlt)) ? itm.amslEntryAlt : homeAmsl;
+                        var rel  = amsl - homeAmsl;
+                        if (rel < 0) rel = 0;
+                        relAlts.push(rel);
+                    }
+
+                    // 도트 좌표 (0=바닥, maxRel=상단)
+                    var positions = [];
+                    for (var i = 0; i < totalWpCount; i++) {
+                        var frac = maxRel > 0 ? (relAlts[i] / maxRel) : 0;
+                        positions.push({ x: leftPad + (i * stepX),
+                                         y: dotBottomY - frac * dotDrawH });
+                    }
+
+                    // y축 고도(m) 라벨 + 눈금선 (0 ~ maxRel)
+                    var ticks = (maxRel > 0) ? [0, 0.5, 1] : [0];
+                    ctx.strokeStyle  = Qt.rgba(1, 1, 1, 0.15);
+                    ctx.lineWidth    = 1;
+                    ctx.fillStyle    = qgcPal.text;
+                    ctx.font         = axisFont + "px " + ScreenTools.normalFontFamily;
+                    ctx.textAlign    = "right";
+                    ctx.textBaseline = "middle";
+                    for (var t = 0; t < ticks.length; t++) {
+                        var yy = dotBottomY - ticks[t] * dotDrawH;
+                        ctx.beginPath();
+                        ctx.moveTo(leftPad, yy);
+                        ctx.lineTo(width - rightPad, yy);
+                        ctx.stroke();
+                        ctx.fillText(Math.round(maxRel * ticks[t]) + "m", leftPad - uiUnit * 0.25, yy);
+                    }
+                    ctx.textBaseline = "alphabetic";
+
+                    // 연결 폴리라인
+                    ctx.strokeStyle = Qt.rgba(1, 1, 1, 0.45);
+                    ctx.setLineDash([4, 3]);
+                    ctx.lineWidth = 1.5;
+                    ctx.beginPath();
+                    ctx.moveTo(positions[0].x, positions[0].y);
+                    for (var j = 1; j < positions.length; j++)
+                        ctx.lineTo(positions[j].x, positions[j].y);
+                    ctx.stroke();
+                    ctx.setLineDash([]);
+
+                    // 번호 레이블 + 도트
+                    ctx.font = fontPx + "px " + ScreenTools.normalFontFamily;
+                    ctx.textAlign = "center";
+                    for (var n = 0; n < totalWpCount; n++) {
+                        var pos = positions[n];
+
+                        ctx.fillStyle = qgcPal.text;
+                        ctx.fillText(n + 1, pos.x, labelBaseY);
+
+                        ctx.beginPath();
+                        ctx.fillStyle = "white";
+                        ctx.arc(pos.x, pos.y, dotRadius * 0.66, 0, 2 * Math.PI);
+                        ctx.fill();
+                    }
+                }
+            }
+        }
             }
 
             Item {
                 id: missionPanel
                 Layout.preferredWidth: root._missionPanelPreferredWidth
-                Layout.minimumWidth:  200
-                Layout.maximumWidth:  root._sidebarMaxWidth
+                Layout.minimumWidth:  Math.max(0, 200 - root._panelHorizontalMargins)
+                Layout.maximumWidth:  Math.max(0, mainWindow.sidebarTargetWidth - root._panelHorizontalMargins)
                 Layout.fillHeight: true
                 Layout.leftMargin: 2
                 Layout.topMargin: 2
@@ -455,9 +832,8 @@ Item {
         Rectangle {
             id: missionPanelBackground
             anchors.fill: parent
-            color: "#1a1a1a"
+            color: root._panelBgColor
             anchors.topMargin: 10
-            anchors.rightMargin: 10
             anchors.bottomMargin: 10
 
             ColumnLayout {
@@ -470,41 +846,21 @@ Item {
                     Layout.fillWidth: true
                     spacing: 10
 
-                    Button {
+                    PanelButton {
                         id: localBtn
                         text: qsTr("로컬저장소")
                         checkable: true
                         checked: true
                         autoExclusive: true
                         Layout.fillWidth: true
-                        contentItem: Text {
-                            text: localBtn.text
-                            color: localBtn.checked ? "black" : "#ffffff"
-                            horizontalAlignment: Text.AlignHCenter
-                            verticalAlignment: Text.AlignVCenter
-                        }
-                        background: Rectangle {
-                            color: localBtn.checked ? "#ffffff" : "#4DFFFFFF"
-                            radius: 4
-                        }
                     }
 
-                    Button {
+                    PanelButton {
                         id: serverBtn
                         text: qsTr("서버저장소")
                         checkable: true
                         autoExclusive: true
                         Layout.fillWidth: true
-                        contentItem: Text {
-                            text: serverBtn.text
-                            color: serverBtn.checked ? "black" : "#ffffff"
-                            horizontalAlignment: Text.AlignHCenter
-                            verticalAlignment: Text.AlignVCenter
-                        }
-                        background: Rectangle {
-                            color: serverBtn.checked ? "#ffffff" : "#4DFFFFFF"
-                            radius: 4
-                        }
                     }
                 }
 
@@ -512,19 +868,17 @@ Item {
                     id: pathHeader
                     Layout.fillWidth: true
 
-                    Text {
+                    QGCLabel {
                         text: qsTr("비행 경로 불러오기")
-                        color: "#ffffff"
-                        font.pixelSize: 13
+                        color: root._panelTextColor
                     }
 
                     Item { Layout.fillWidth: true }
 
-                    Text {
+                    QGCLabel {
                         id: statusText
                         text: missionPanelBackground.pathListVisible ? qsTr("닫기 ▲") : (serverBtn.checked ? qsTr("목록 요청 ▼") : qsTr("목록 열기 ▼"))
-                        color: "#ffffff"
-                        font.pixelSize: 13
+                        color: root._panelAccentColor
                         font.bold: true
 
                         MouseArea {
@@ -549,27 +903,17 @@ Item {
                     Layout.fillWidth: true
                     spacing: 6
 
-                    Text {
+                    QGCLabel {
                         text: qsTr("선택된 파일:")
-                        color: "#ffffff"
-                        font.pixelSize: 12
+                        color: root._panelMutedTextColor
                         Layout.alignment: Qt.AlignVCenter
                     }
 
-                    TextField {
+                    PanelTextField {
                         id: selectedFileNameField
                         Layout.fillWidth: true
-                        Layout.preferredHeight: 28
                         text: root.selectedPlanPath
                         placeholderText: qsTr("선택된 파일 없음")
-                        placeholderTextColor: "#888888"
-                        color: "#ffffff"
-                        font.pixelSize: 12
-                        background: Rectangle {
-                            color: "#252525"
-                            border.color: selectedFileNameField.activeFocus ? "#666666" : "#444444"
-                            radius: 4
-                        }
                         onEditingFinished: {
                             var newName = text.trim()
                             if (newName !== "" && newName !== root.selectedPlanPath) {
@@ -585,10 +929,11 @@ Item {
                     Layout.fillWidth: true
                     spacing: 8
 
-                    Button {
+                    PanelButton {
                         id: saveBtn
                         text: qsTr("저장")
                         Layout.fillWidth: true
+                        Layout.preferredWidth: 0
                         onClicked: {
                             if (localBtn.checked)
                                 root.openPlanFileSave()
@@ -597,10 +942,11 @@ Item {
                         }
                     }
 
-                    Button {
+                    PanelButton {
                         id: loadBtn
                         text: qsTr("불러오기")
                         Layout.fillWidth: true
+                        Layout.preferredWidth: 0
                         enabled: !localBtn.checked && root.selectedPlanPath !== ""
                         onClicked: {
                             if (serverBtn.checked)
@@ -608,10 +954,12 @@ Item {
                         }
                     }
 
-                    Button {
+                    PanelButton {
                         id: deleteBtn
                         text: localBtn.checked ? qsTr("경로 전체 삭제") : qsTr("삭제")
+                        danger: true
                         Layout.fillWidth: true
+                        Layout.preferredWidth: 0
                         onClicked: {
                             if (localBtn.checked)
                                 root.clearDrawnPlan()
@@ -627,10 +975,9 @@ Item {
 
                     Item { Layout.fillWidth: true }
 
-                    Text {
+                    QGCLabel {
                         text: root.deviceName === "" ? qsTr("대상 기체를 선택하시오") : qsTr("선택된 기체: ") + root.deviceName
-                        color: "#ffffff"
-                        font.pixelSize: 14
+                        color: root._panelTextColor
                         font.bold: true
                         Layout.alignment: Qt.AlignHCenter
                         horizontalAlignment: Text.AlignHCenter
@@ -645,25 +992,44 @@ Item {
                     Layout.fillWidth: true
                     spacing: 8
 
-                    Button{
+                    PanelButton {
                         id: uploadBtn
                         text: qsTr("업로드")
                         Layout.fillWidth: true
-                        enabled: root.deviceName !== ""
+                        Layout.preferredWidth: 0
+                        enabled: (root._hasQgcVehicle || root.deviceName !== "") &&
+                                 !(root._planMasterController && root._planMasterController.syncInProgress)
+                        onClicked: {
+                            if (root._hasQgcVehicle && root._planMasterController)
+                                root._planMasterController.sendToVehicle()
+                        }
                     }
 
-                    Button{
+                    PanelButton {
                         id: deviceLoadBtn
                         text: qsTr("경로 불러오기")
                         Layout.fillWidth: true
-                        enabled: root.deviceName !== ""
+                        Layout.preferredWidth: 0
+                        enabled: (root._hasQgcVehicle || root.deviceName !== "") &&
+                                 !(root._planMasterController && root._planMasterController.syncInProgress)
+                        onClicked: {
+                            if (root._hasQgcVehicle && root._planMasterController)
+                                root._planMasterController.loadFromVehicle()
+                        }
                     }
 
-                    Button{
+                    PanelButton {
                         id: deviceDeleteBtn
                         text: qsTr("업로드 경로 삭제")
+                        danger: true
                         Layout.fillWidth: true
-                        enabled: root.deviceName !== ""
+                        Layout.preferredWidth: 0
+                        enabled: (root._hasQgcVehicle || root.deviceName !== "") &&
+                                 !(root._planMasterController && root._planMasterController.syncInProgress)
+                        onClicked: {
+                            if (root._hasQgcVehicle && root._planMasterController)
+                                root._planMasterController.removeAllFromVehicle()
+                        }
                     }
 
                 }
@@ -676,85 +1042,285 @@ Item {
                     anchors.rightMargin: 10
                     spacing: ScreenTools.defaultFontPixelHeight * 0.25
 
-                    RowLayout {
+                    ColumnLayout {
+                        id: missionActionSections
                         Layout.fillWidth: true
-                        spacing: 8
-                        QGCButton {
-                            text: qsTr("Takeoff")
-                            enabled: _missionController && _missionController.isInsertTakeoffValid
-                            visible: (_editingLayer == _layerMission || _editingLayer == _layerUTMSP) && _planMasterController && (!_planMasterController.controllerVehicle || !_planMasterController.controllerVehicle.rover)
-                            onClicked: {
-                                root._waypointAddMode = false
-                                insertTakeoffItemAfterCurrent()
-                                _triggerSubmit = true
+                        spacing: ScreenTools.defaultFontPixelHeight * 0.35
+                        visible: _editingLayer == _layerMission ||
+                                 _editingLayer == _layerRallyPoints ||
+                                 _editingLayer == _layerUTMSP
+
+                        Rectangle {
+                            Layout.fillWidth: true
+                            implicitHeight: addMissionSectionLayout.implicitHeight + addMissionSectionLayout.anchors.margins * 2
+                            color: root._panelCardColor
+                            radius: ScreenTools.defaultFontPixelWidth * 0.45
+                            border.color: root._panelBorderColor
+                            border.width: 1
+                            visible: _editingLayer == _layerMission || _editingLayer == _layerRallyPoints || _editingLayer == _layerUTMSP
+
+                            ColumnLayout {
+                                id: addMissionSectionLayout
+                                anchors.fill: parent
+                                anchors.margins: ScreenTools.defaultFontPixelWidth * 0.6
+                                spacing: ScreenTools.defaultFontPixelHeight * 0.25
+                                readonly property real _buttonSpacing: 8
+
+                                QGCLabel {
+                                    text: qsTr("미션 추가")
+                                    color: root._panelMutedTextColor
+                                    font.bold: true
+                                }
+
+                                RowLayout {
+                                    Layout.fillWidth: true
+                                    spacing: addMissionSectionLayout._buttonSpacing
+
+                                    PanelButton {
+                                        text: qsTr("Takeoff")
+                                        Layout.fillWidth: true
+                                        Layout.preferredWidth: 0
+                                        Layout.preferredHeight: root._missionActionButtonHeight
+                                        enabled: _missionController && _missionController.isInsertTakeoffValid
+                                        visible: (_editingLayer == _layerMission || _editingLayer == _layerUTMSP) && _planMasterController && (!_planMasterController.controllerVehicle || !_planMasterController.controllerVehicle.rover)
+                                        onClicked: {
+                                            root._waypointAddMode = false
+                                            root._addROIOnClick = false
+                                            insertTakeoffItemAfterCurrent()
+                                            _triggerSubmit = true
+                                        }
+                                    }
+                                    PanelButton {
+                                        id: addWaypointBtn
+                                        text: _editingLayer == _layerRallyPoints ? qsTr("Rally Point") : qsTr("Waypoint")
+                                        Layout.fillWidth: true
+                                        Layout.preferredWidth: 0
+                                        Layout.preferredHeight: root._missionActionButtonHeight
+                                        checkable: true
+                                        enabled: _editingLayer == _layerRallyPoints ? true : (_missionController && _missionController.flyThroughCommandsAllowed)
+                                        visible: _editingLayer == _layerRallyPoints || _editingLayer == _layerMission || _editingLayer == _layerUTMSP
+                                        onClicked: {
+                                            root._waypointAddMode = addWaypointBtn.checked
+                                            if (addWaypointBtn.checked)
+                                                root._addROIOnClick = false
+                                        }
+                                    }
+                                    PanelButton {
+                                        id: roiBtn
+                                        text: _missionController && _missionController.isROIActive ? qsTr("Cancel ROI") : qsTr("ROI")
+                                        Layout.fillWidth: true
+                                        Layout.preferredWidth: 0
+                                        Layout.preferredHeight: root._missionActionButtonHeight
+                                        checkable: _missionController && !_missionController.isROIActive
+                                        enabled: _missionController && !_missionController.onlyInsertTakeoffValid
+                                        visible: _editingLayer == _layerMission &&
+                                                 _planMasterController &&
+                                                 _planMasterController.controllerVehicle &&
+                                                 _planMasterController.controllerVehicle.roiModeSupported
+                                        onClicked: {
+                                            root._waypointAddMode = false
+                                            if (_missionController && _missionController.isROIActive) {
+                                                root._addROIOnClick = false
+                                                insertCancelROIAfterCurrent()
+                                            } else {
+                                                root._addROIOnClick = roiBtn.checked
+                                            }
+                                        }
+                                    }
+                                }
                             }
                         }
-                        QGCButton {
-                            id: addWaypointBtn
-                            text: _editingLayer == _layerRallyPoints ? qsTr("Rally Point") : qsTr("Waypoint")
-                            checkable: true
-                            enabled: _editingLayer == _layerRallyPoints ? true : (_missionController && _missionController.flyThroughCommandsAllowed)
-                            visible: _editingLayer == _layerRallyPoints || _editingLayer == _layerMission || _editingLayer == _layerUTMSP
-                            onClicked: root._waypointAddMode = addWaypointBtn.checked
-                        }
 
-                        QGCButton {
-                            id:       addRTLBtn
-                            text:     qsTr("Return")
-                            enabled:  _missionController && _missionController.isInsertLandValid
-                            visible:  _editingLayer == _layerMission || _editingLayer == _layerUTMSP
-                            onClicked: {
-                                root._waypointAddMode = false
-                                // Return(RTL) 아이템을 현재 위치 다음에 삽입
-                                insertLandItemAfterCurrent()
-                                _triggerSubmit = true
+                        Rectangle {
+                            Layout.fillWidth: true
+                            implicitHeight: finishMissionSectionLayout.implicitHeight + finishMissionSectionLayout.anchors.margins * 2
+                            color: root._panelItemColor
+                            radius: ScreenTools.defaultFontPixelWidth * 0.45
+                            border.color: root._panelBorderColor
+                            border.width: 1
+                            visible: _editingLayer == _layerMission || _editingLayer == _layerUTMSP
+
+                            ColumnLayout {
+                                id: finishMissionSectionLayout
+                                anchors.fill: parent
+                                anchors.margins: ScreenTools.defaultFontPixelWidth * 0.6
+                                spacing: ScreenTools.defaultFontPixelHeight * 0.25
+                                readonly property real _buttonSpacing: 8
+
+                                QGCLabel {
+                                    text: qsTr("패턴 / 종료")
+                                    color: root._panelMutedTextColor
+                                    font.bold: true
+                                }
+
+                                RowLayout {
+                                    Layout.fillWidth: true
+                                    spacing: finishMissionSectionLayout._buttonSpacing
+
+                                    PanelButton {
+                                        id: patternBtn
+                                        text: _singleComplexItem && _missionController ? _missionController.complexMissionItemNames[0] : qsTr("Pattern")
+                                        Layout.fillWidth: true
+                                        Layout.preferredWidth: 0
+                                        Layout.preferredHeight: root._missionActionButtonHeight
+                                        enabled: _missionController && _missionController.flyThroughCommandsAllowed
+                                        visible: _editingLayer == _layerMission
+                                        onClicked: {
+                                            root._waypointAddMode = false
+                                            root._addROIOnClick = false
+                                            if (_singleComplexItem) {
+                                                insertComplexItemAfterCurrent(_missionController.complexMissionItemNames[0])
+                                            } else {
+                                                patternPopup.open()
+                                            }
+                                        }
+                                    }
+
+                                    PanelButton {
+                                        id:       addRTLBtn
+                                        text:     qsTr("Return")
+                                        Layout.fillWidth: true
+                                        Layout.preferredWidth: 0
+                                        Layout.preferredHeight: root._missionActionButtonHeight
+                                        enabled:  _missionController && _missionController.isInsertLandValid
+                                        visible:  _editingLayer == _layerMission || _editingLayer == _layerUTMSP
+                                        onClicked: {
+                                            root._waypointAddMode = false
+                                            root._addROIOnClick = false
+                                            // Return(RTL) 아이템을 현재 위치 다음에 삽입
+                                            insertLandItemAfterCurrent()
+                                            _triggerSubmit = true
+                                        }
+                                    }
+
+                                    PanelButton {
+                                        id: landPointBtn
+                                        text: qsTr("Land")
+                                        Layout.fillWidth: true
+                                        Layout.preferredWidth: 0
+                                        Layout.preferredHeight: root._missionActionButtonHeight
+                                        enabled:  _missionController && _missionController.isInsertLandValid
+                                        visible:  _editingLayer == _layerMission || _editingLayer == _layerUTMSP
+                                        onClicked: {
+                                            root._waypointAddMode = false
+                                            root._addROIOnClick = false
+                                            stationLandPoint.open()
+                                        }
+                                    }
+                                }
                             }
                         }
-
-                        Button{
-                            id: landPointBtn
-                            text: qsTr("Land")
-                            enabled:  _missionController && _missionController.isInsertLandValid
-                            visible:  _editingLayer == _layerMission || _editingLayer == _layerUTMSP
-                            onClicked: stationLandPoint.open()
-                        }
-
-                        Item { Layout.fillWidth: true }
                     }
                     Binding {
                         target: addWaypointBtn
                         property: "checked"
                         value: root._waypointAddMode
                     }
+                    Binding {
+                        target: roiBtn
+                        property: "checked"
+                        value: root._addROIOnClick
+                    }
 
-                    QGCTabBar {
+                    Popup {
+                        id: patternPopup
+                        parent: patternBtn
+                        x: 0
+                        y: patternBtn.height + ScreenTools.defaultFontPixelHeight * 0.25
+                        modal: false
+                        focus: true
+                        closePolicy: Popup.CloseOnEscape | Popup.CloseOnReleaseOutside
+                        padding: ScreenTools.defaultFontPixelWidth
+                        background: Rectangle {
+                            color: root._panelCardColor
+                            radius: ScreenTools.defaultFontPixelWidth * 0.45
+                            border.color: root._panelBorderLight
+                            border.width: 1
+                        }
+                        contentItem: ColumnLayout {
+                            spacing: ScreenTools.defaultFontPixelWidth * 0.5
+                            QGCLabel {
+                                text: qsTr("Create complex pattern:")
+                                color: root._panelTextColor
+                            }
+                            Repeater {
+                                model: _missionController ? _missionController.complexMissionItemNames : []
+                                PanelButton {
+                                    text: modelData
+                                    Layout.fillWidth: true
+                                    onClicked: {
+                                        insertComplexItemAfterCurrent(modelData)
+                                        patternPopup.close()
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    TabBar {
                         id: customLayerTabBar
                         Layout.fillWidth: true
+                        Layout.preferredHeight: ScreenTools.implicitButtonHeight
                         visible: !_utmspEnabled
                         Component.onCompleted: { currentIndex = 0; root._customEditingLayer = root._layers[0] }
-                        onCurrentIndexChanged: root._customEditingLayer = root._layers[currentIndex]
-                        QGCTabButton { text: qsTr("Mission") }
-                        QGCTabButton { text: qsTr("Fence"); enabled: _geoFenceController && _geoFenceController.supported }
-                        QGCTabButton { text: qsTr("Rally"); enabled: _rallyPointController && _rallyPointController.supported }
+                        onCurrentIndexChanged: {
+                            root._customEditingLayer = root._layers[currentIndex]
+                            if (root._customEditingLayer != root._layerMission && root._customEditingLayer != root._layerRallyPoints && root._customEditingLayer != root._layerUTMSP) {
+                                root._waypointAddMode = false
+                                root._addROIOnClick = false
+                            }
+                        }
+                        spacing: ScreenTools.defaultFontPixelWidth * 0.5
+                        background: Rectangle {
+                            color: root._panelBgColor
+                            radius: ScreenTools.defaultFontPixelWidth * 0.45
+                            border.color: root._panelBorderColor
+                            border.width: 1
+                        }
+                        PanelTabButton { text: qsTr("Mission") }
+                        PanelTabButton { text: qsTr("Fence"); enabled: _geoFenceController && _geoFenceController.supported }
+                        PanelTabButton { text: qsTr("Rally"); enabled: _rallyPointController && _rallyPointController.supported }
                     }
-                    QGCTabBar {
+                    TabBar {
                         id: customLayerTabBarUTMSP
                         Layout.fillWidth: true
+                        Layout.preferredHeight: ScreenTools.implicitButtonHeight
                         visible: _utmspEnabled
                         Component.onCompleted: { currentIndex = 0; root._customEditingLayer = root._layersUTMSP[0] }
-                        onCurrentIndexChanged: root._customEditingLayer = root._layersUTMSP[currentIndex]
-                        QGCTabButton { text: qsTr("Mission") }
-                        QGCTabButton { text: qsTr("Rally"); enabled: _rallyPointController && _rallyPointController.supported }
-                        QGCTabButton { text: qsTr("UTM-Adapter"); visible: _utmspEnabled }
+                        onCurrentIndexChanged: {
+                            root._customEditingLayer = root._layersUTMSP[currentIndex]
+                            if (root._customEditingLayer != root._layerMission && root._customEditingLayer != root._layerRallyPoints && root._customEditingLayer != root._layerUTMSP) {
+                                root._waypointAddMode = false
+                                root._addROIOnClick = false
+                            }
+                        }
+                        spacing: ScreenTools.defaultFontPixelWidth * 0.5
+                        background: Rectangle {
+                            color: root._panelBgColor
+                            radius: ScreenTools.defaultFontPixelWidth * 0.45
+                            border.color: root._panelBorderColor
+                            border.width: 1
+                        }
+                        PanelTabButton { text: qsTr("Mission") }
+                        PanelTabButton { text: qsTr("Rally"); enabled: _rallyPointController && _rallyPointController.supported }
+                        PanelTabButton { text: qsTr("UTM-Adapter"); visible: _utmspEnabled }
                     }
 
                     Item {
                         id: missionEditorListContainer
                         Layout.fillWidth: true
                         Layout.fillHeight: true
+                        Rectangle {
+                            anchors.fill: parent
+                            color: root._panelBgColor
+                            radius: ScreenTools.defaultFontPixelWidth * 0.45
+                            border.color: root._panelBorderLight
+                            border.width: 1
+                        }
                         QGCListView {
                             id: missionItemEditorListView
                             anchors.fill: parent
+                            anchors.margins: ScreenTools.defaultFontPixelWidth * 0.5
                             spacing: ScreenTools.defaultFontPixelHeight / 4
                             orientation: ListView.Vertical
                             model: _missionController ? _missionController.visualItems : null
@@ -966,20 +1532,20 @@ Item {
                 padding: 0
                 margins: 0
                 background: Rectangle {
-                    color: "#252525"
-                    radius: 4
-                    border.color: "#444444"
+                    color: root._panelCardColor
+                    radius: ScreenTools.defaultFontPixelWidth * 0.45
+                    border.color: root._panelBorderLight
+                    border.width: 1
                 }
                 contentItem: Item {
                     width: pathContainer.width
                     height: pathContainer.height
                     // 서버 저장소용 목록만 표시 (로컬은 목록 열기 시 파일 다이얼로그만 사용)
-                    Text {
+                    QGCLabel {
                         anchors.centerIn: parent
                         visible: serverPlanListModel && serverPlanListModel.count === 0
                         text: qsTr("서버 연결 후 '목록 요청'을 눌러 주세요.")
-                        color: "#aaaaaa"
-                        font.pixelSize: 12
+                        color: root._panelMutedTextColor
                         horizontalAlignment: Text.AlignHCenter
                     }
                     ScrollView {
@@ -993,15 +1559,19 @@ Item {
                             model: serverPlanListModel
                             delegate: ItemDelegate {
                                 width: pathContainer.width - 20
-                                text: (typeof model.name !== "undefined") ? model.name : ""
-                                contentItem: Text {
+                                text: root._stripFileExtension((typeof model.name !== "undefined") ? model.name : "")
+                                background: Rectangle {
+                                    color: parent.down ? root._panelFieldColor : (parent.hovered ? root._panelHoverColor : "transparent")
+                                    radius: ScreenTools.defaultFontPixelWidth * 0.35
+                                }
+                                contentItem: QGCLabel {
                                     text: parent.text
-                                    color: parent.down ? "#aaaaaa" : "#ffffff"
+                                    color: parent.down ? "#ffffff" : root._panelTextColor
                                     verticalAlignment: Text.AlignVCenter
                                     leftPadding: 10
                                 }
                                 onClicked: {
-                                    root.selectedPlanPath = (typeof model.name !== "undefined") ? model.name : ""
+                                    root.selectedPlanPath = root._stripFileExtension((typeof model.name !== "undefined") ? model.name : "")
                                     missionPanelBackground.pathListVisible = false
                                     // TODO: 서버에서 선택한 계획 불러오기
                                 }

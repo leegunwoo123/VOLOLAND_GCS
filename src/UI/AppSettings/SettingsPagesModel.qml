@@ -16,7 +16,7 @@ ListModel {
     ListElement {
         name: qsTr("General")
         url: "qrc:/qml/QGroundControl/AppSettings/GeneralSettings.qml"
-        iconUrl: "qrc:/res/QGCLogoWhite.svg"
+        iconUrl: "qrc:/res/GeneralWhite.svg"
         pageVisible: function() { return true }
     }
 
@@ -39,6 +39,13 @@ ListModel {
         url: "qrc:/qml/QGroundControl/AppSettings/VideoSettings.qml"
         iconUrl: "qrc:/InstrumentValueIcons/camera.svg"
         pageVisible: function() { return QGroundControl.settingsManager.videoSettings.visible }
+    }
+
+    ListElement {
+        name: qsTr("Video Crypto")
+        url: "qrc:/qml/QGroundControl/AppSettings/VideoCryptoSettings.qml"
+        iconUrl: "qrc:/InstrumentValueIcons/crypto.svg"
+        pageVisible: function() { return true }
     }
 
     ListElement {
@@ -121,6 +128,13 @@ ListModel {
         url: "qrc:/qml/QGroundControl/AppSettings/QmlTest.qml"
         iconUrl: "qrc:/InstrumentValueIcons/photo.svg"
         pageVisible: function() { return ScreenTools.isDebug }
+    }
+
+    ListElement {
+        name: qsTr("crypto")
+        url: "qrc:/qml/QGroundControl/AppSettings/CryptoSettings.qml"
+        iconUrl: "qrc:/InstrumentValueIcons/crypto.svg"
+        pageVisible: function() { return true }
     }
 }
 

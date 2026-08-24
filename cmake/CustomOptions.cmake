@@ -9,11 +9,14 @@ include(CMakeDependentOption)
 option(QGC_ENABLE_HERELINK "Enable Herelink Support" OFF)
 
 # App
-set(QGC_APP_NAME "QGroundControl" CACHE STRING "App Name")
+#set(QGC_APP_NAME "QGroundControl" CACHE STRING "App Name")
+set(QGC_APP_NAME "VololandVGcs" CACHE STRING "App Name")
 set(QGC_APP_COPYRIGHT "Copyright (c) 2025 QGroundControl. All rights reserved." CACHE STRING "Copyright")
 set(QGC_APP_DESCRIPTION "Open Source Ground Control App" CACHE STRING "Description")
-set(QGC_ORG_NAME "QGroundControl" CACHE STRING "Org Name")
-set(QGC_ORG_DOMAIN "qgroundcontrol.com" CACHE STRING "Domain")
+#set(QGC_ORG_NAME "QGroundControl" CACHE STRING "Org Name")
+set(QGC_ORG_NAME "VololandVGcs" CACHE STRING "Org Name")
+#set(QGC_ORG_DOMAIN "qgroundcontrol.com" CACHE STRING "Domain")
+set(QGC_ORG_DOMAIN "vololand.com" CACHE STRING "Domain")
 set(QGC_PACKAGE_NAME "org.mavlink.qgroundcontrol" CACHE STRING "Package Name")
 set(QGC_SETTINGS_VERSION "9" CACHE STRING "Settings Version") # If you need to make an incompatible changes to stored settings, bump this version number up by 1. This will caused store settings to be cleared on next boot.
 
@@ -70,11 +73,11 @@ set(QGC_MACOS_ENTITLEMENTS_PATH "${CMAKE_SOURCE_DIR}/deploy/macos/qgroundcontrol
 # option(QGC_MACOS_UNIVERSAL_BUILD "Build MacOS Universal Build (arm64;x86_64)" ON) # MACOS
 
 # Linux
-set(QGC_APPIMAGE_ICON_PATH "${CMAKE_SOURCE_DIR}/resources/icons/qgroundcontrol.png" CACHE FILEPATH "AppImage Icon Path")
+set(QGC_APPIMAGE_ICON_PATH "${CMAKE_SOURCE_DIR}/resources/icons/VolV.png" CACHE FILEPATH "AppImage Icon Path")
 
 # Windows
 set(QGC_WINDOWS_INSTALL_HEADER_PATH "${CMAKE_SOURCE_DIR}/deploy/windows/installheader.bmp" CACHE FILEPATH "Windows Install Header Path")
-set(QGC_WINDOWS_ICON_PATH "${CMAKE_SOURCE_DIR}/deploy/windows/WindowsQGC.ico" CACHE FILEPATH "Windows Icon Path")
+set(QGC_WINDOWS_ICON_PATH "${CMAKE_SOURCE_DIR}/deploy/windows/VolV.ico" CACHE FILEPATH "Windows Icon Path")
 set(QGC_WINDOWS_RESOURCE_FILE_PATH "${CMAKE_SOURCE_DIR}/deploy/windows/QGroundControl.rc" CACHE FILEPATH "Windows Resource File Path")
 
 # CPM

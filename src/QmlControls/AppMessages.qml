@@ -44,7 +44,9 @@ Item {
 
                     QGCLabel {
                         id:         field
-                        text:       display
+                        // insertRows 직후 display 역할이 비어 있으면 undefined 가 온다.
+                        // 그걸 QString 에 넣으면 경고가 다시 이 모델에 쌓여 루프가 된다.
+                        text:       display ?? ""
                         width:      parent.width
                         wrapMode:   Text.Wrap
                         anchors.verticalCenter: parent.verticalCenter

@@ -344,6 +344,13 @@ bool VideoManager::isStreamSource() const
 
 void VideoManager::_videoSourceChanged()
 {
+    // 비디오 OFF 전환 시(예: videoSource=Disabled), 아래 _updateSettings()가 리시버 URI를 비우기 전에 먼저 정지한다.
+    // GstVideoReceiver::stop()은 _uri가 비어 있으면 early-return 하므로, URI가 지워진 뒤 stopVideo()를 부르면
+    // 파이프라인/RTSP TCP 세션이 닫히지 않는다. 이 시점엔 리시버가 아직 이전 URI를 갖고 있어 정상 teardown 된다.
+    if (!hasVideo()) {
+        stopVideo();
+    }
+
     bool changed = false;
     if (_activeVehicle) {
         QGCCameraManager* camMgr = _activeVehicle->cameraManager();

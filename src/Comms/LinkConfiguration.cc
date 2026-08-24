@@ -23,6 +23,7 @@
 #ifndef QGC_AIRLINK_DISABLED
 #include "AirLinkLink.h"
 #endif
+#include "EncryptedMavlinkLink.h"
 
 LinkConfiguration::LinkConfiguration(const QString &name, QObject *parent)
     : QObject(parent)
@@ -94,6 +95,9 @@ LinkConfiguration *LinkConfiguration::createSettings(int type, const QString &na
         config = new AirLinkConfiguration(name);
         break;
 #endif
+    case TypeTngEncryptedTest:
+        config = new EncryptedMavlinkConfiguration(name);
+        break;
     case TypeLast:
     default:
         break;
@@ -136,6 +140,9 @@ LinkConfiguration *LinkConfiguration::duplicateSettings(const LinkConfiguration 
         dupe = new AirLinkConfiguration(qobject_cast<const AirLinkConfiguration*>(source));
         break;
 #endif
+    case TypeTngEncryptedTest:
+        dupe = new EncryptedMavlinkConfiguration(qobject_cast<const EncryptedMavlinkConfiguration*>(source));
+        break;
     case TypeLast:
     default:
         break;

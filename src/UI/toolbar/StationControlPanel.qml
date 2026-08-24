@@ -1,15 +1,20 @@
 import QtQuick 6.8
 import QtQuick.Controls 6.8
 import QtQuick.Layouts 6.8
+import QGroundControl.ScreenTools
+import QGroundControl.Toolbar
 
 Rectangle {
     id: controlRoot
-    implicitWidth: parent.width
-    implicitHeight:  stationControlButton.implicitHeight + 20
+    implicitHeight: stationControlButton.implicitHeight + (_panelMargin * 2)
 
     color: "#252525"
     border.color: "#333"
     radius: 4
+
+    readonly property real _panelMargin: ScreenTools.defaultFontPixelHeight * 0.45
+    readonly property real _panelSpacing: ScreenTools.defaultFontPixelHeight * 0.35
+    readonly property real _buttonSpacing: ScreenTools.defaultFontPixelWidth * 0.35
 
     property string selectedStation: ""
     property var backend: null
@@ -19,8 +24,8 @@ Rectangle {
         anchors.top: parent.top
         anchors.left: parent.left
         anchors.right: parent.right
-        anchors.margins: 10
-        spacing: 10
+        anchors.margins: controlRoot._panelMargin
+        spacing: controlRoot._panelSpacing
 
         // selected device cehck box
         // Text {
@@ -41,10 +46,10 @@ Rectangle {
         // 제어 버튼들
         RowLayout{
             Layout.fillWidth: true
-            spacing: 5
+            spacing: controlRoot._buttonSpacing
 
             // 이륙준비
-            Button {
+            PanelButton {
                 Layout.fillWidth: true
                 Layout.preferredWidth: 0 // 3등분 가중치 설정
                 text: "이륙준비"
@@ -54,7 +59,7 @@ Rectangle {
             }
 
             // 이륙완료
-            Button {
+            PanelButton {
                 Layout.fillWidth: true
                 Layout.preferredWidth: 0
                 text: "이륙완료"
@@ -64,7 +69,7 @@ Rectangle {
             }
 
             // 착륙준비
-            Button {
+            PanelButton {
                 Layout.fillWidth: true
                 Layout.preferredWidth: 0
                 text: "착륙준비"
@@ -74,7 +79,7 @@ Rectangle {
             }
 
             // 착륙완료
-            Button {
+            PanelButton {
                 Layout.fillWidth: true
                 Layout.preferredWidth: 0
                 text: "착륙완료"
@@ -86,10 +91,10 @@ Rectangle {
 
         RowLayout{
             Layout.fillWidth: true
-            spacing: 5
+            spacing: controlRoot._buttonSpacing
 
             // 메인도어/랜딩패드 열림
-            Button {
+            PanelButton {
                 Layout.fillWidth: true
                 Layout.preferredWidth: 0
                 text: "도어 열림"
@@ -100,7 +105,7 @@ Rectangle {
             }
 
             // 메인도어/랜딩패드 닫힘
-            Button {
+            PanelButton {
                 Layout.fillWidth: true
                 Layout.preferredWidth: 0
                 text: "도어 닫힘"
@@ -111,7 +116,7 @@ Rectangle {
             }
 
             // 기체 전원 ON
-            Button {
+            PanelButton {
                 Layout.fillWidth: true
                 Layout.preferredWidth: 0
                 text: "전원 ON"
@@ -121,7 +126,7 @@ Rectangle {
             }
 
             //기체 전원 OFF
-            Button {
+            PanelButton {
                 Layout.fillWidth: true
                 Layout.preferredWidth: 0
                 text: "전원 OFF"
@@ -133,10 +138,10 @@ Rectangle {
 
         RowLayout{
             Layout.fillWidth: true
-            spacing: 5
+            spacing: controlRoot._buttonSpacing
 
             // 충전기 OM
-            Button {
+            PanelButton {
                 Layout.fillWidth: true
                 Layout.preferredWidth: 0
                 text: "충전기 ON"
@@ -146,7 +151,7 @@ Rectangle {
             }
 
             // 충전기 OFF
-            Button {
+            PanelButton {
                 Layout.fillWidth: true
                 Layout.preferredWidth: 0
                 text: "충전기 OFF"
@@ -156,7 +161,7 @@ Rectangle {
             }
 
             // 냉방기 ON
-            Button {
+            PanelButton {
                 Layout.fillWidth: true
                 Layout.preferredWidth: 0
                 text: "냉방기 ON"
@@ -166,7 +171,7 @@ Rectangle {
             }
 
             // 냉방기 OFF
-            Button {
+            PanelButton {
                 Layout.fillWidth: true
                 Layout.preferredWidth: 0
                 text: "냉방기 OFF"
@@ -178,10 +183,10 @@ Rectangle {
 
         RowLayout{
             Layout.fillWidth: true
-            spacing: 5
+            spacing: controlRoot._buttonSpacing
 
             // 난방기 ON
-            Button {
+            PanelButton {
                 Layout.fillWidth: true
                 Layout.preferredWidth: 0
                 text: "난방기 ON"
@@ -191,7 +196,7 @@ Rectangle {
             }
 
             // 난방기 OFF
-            Button {
+            PanelButton {
                 Layout.fillWidth: true
                 Layout.preferredWidth: 0
                 text: "난방기 OFF"
@@ -201,7 +206,7 @@ Rectangle {
             }
 
             // LED ON
-            Button {
+            PanelButton {
                 Layout.fillWidth: true
                 Layout.preferredWidth: 0
                 text: "LED ON"
@@ -211,7 +216,7 @@ Rectangle {
             }
 
             // LED OFF
-            Button {
+            PanelButton {
                 Layout.fillWidth: true
                 Layout.preferredWidth: 0
                 text: "LED OFF"
@@ -222,9 +227,11 @@ Rectangle {
         }
 
         RowLayout{
+            Layout.fillWidth: true
+            spacing: controlRoot._buttonSpacing
 
             // 긴급멈춤
-            Button {
+            PanelButton {
                 Layout.fillWidth: true
                 Layout.preferredWidth: 0
                 text: "긴급멈춤"
@@ -234,7 +241,7 @@ Rectangle {
             }
 
             // 모터 초기화
-            Button {
+            PanelButton {
                 Layout.fillWidth: true
                 Layout.preferredWidth: 0
                 text: "모터 초기화"

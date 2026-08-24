@@ -12,9 +12,11 @@ Rectangle {
     id:          valuesRect
     width:       Math.max(availableWidth, _minContentWidth)
     height:      Math.max(valuesColumn.height + (_margin * 2), _minContentHeight)
-    color:       qgcPal.windowShadeDark
+    color:       "#151515"
     // visible:     missionItem.isCurrentItem
     radius:      _radius
+    border.width: 1
+    border.color: "#333333"
 
     property real _margin:           ScreenTools.defaultFontPixelWidth / 2
     property real _fieldWidth:       ScreenTools.defaultFontPixelWidth * 16

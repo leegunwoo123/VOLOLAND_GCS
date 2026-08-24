@@ -22,11 +22,11 @@ Rectangle {
     //
     // 모든 아이템 항상 펼침
     height:         Math.max(editorLoader.y + editorLoader.height + _innerMargin, _minRowHeight)
-    color:          _currentItem ? qgcPal.missionItemEditor : qgcPal.windowShade
+    color:          _currentItem ? _selectedCardColor : _cardColor
     radius:         _radius
-    opacity:        _currentItem ? 1.0 : 0.7
-    border.width:   _readyForSave ? 0 : 2
-    border.color:   qgcPal.warningText
+    opacity:        _currentItem ? 1.0 : 0.88
+    border.width:   _readyForSave ? 1 : 2
+    border.color:   _readyForSave ? (_currentItem ? _selectedBorderColor : _cardBorderColor) : qgcPal.warningText
 
     property var    map                 ///< Map control
     property var    masterController
@@ -41,11 +41,17 @@ Rectangle {
     property var    _masterController:          masterController
     property var    _missionController:         _masterController.missionController
     property bool   _currentItem:               missionItem.isCurrentItem
-    property color  _outerTextColor:            _currentItem ? qgcPal.primaryButtonText : qgcPal.text
+    property color  _outerTextColor:            _currentItem ? "#ffffff" : "#e0e0e0"
     property bool   _noMissionItemsAdded:       ListView.view.model.count === 1
     property real   _sectionSpacer:             ScreenTools.defaultFontPixelWidth / 2  // spacing between section headings
     property bool   _singleComplexItem:         _missionController.complexMissionItemNames.length === 1
     property bool   _readyForSave:              missionItem.readyForSaveState === VisualMissionItem.ReadyForSave
+
+    readonly property color _cardColor:          "#151515"
+    readonly property color _selectedCardColor:  "#252525"
+    readonly property color _cardBorderColor:    "#333333"
+    readonly property color _selectedBorderColor:"#00BFFF"
+    readonly property color _mutedIconColor:     "#AAAAAA"
 
     readonly property real  _editFieldWidth:    Math.min(width - _innerMargin * 2, ScreenTools.defaultFontPixelWidth * 12)
     readonly property real  _margin:            ScreenTools.defaultFontPixelWidth / 2
@@ -82,8 +88,10 @@ Rectangle {
         height:                 topRowLayout.height + _margin * 2
         x:                      0
         y:                      0
-        color:                  qgcPal.missionItemEditor
+        color:                  _selectedCardColor
         radius:                 _radius
+        border.color:           _selectedBorderColor
+        border.width:           1
         visible:                dragArea.drag.active
         enabled:                false   // 이벤트 투과 → 아래 DropArea가 히트되도록
         z:                      1000
@@ -222,7 +230,7 @@ Rectangle {
                     fillMode:           Image.PreserveAspectFit
                     smooth:             true
                     antialiasing:       true
-                    color:              qgcPal.text
+                    color:              _outerTextColor
                     source:             "/qmlimages/arrow-down.png"
                 }
             }
@@ -267,7 +275,7 @@ Rectangle {
             fillMode:               Image.PreserveAspectFit
             mipmap:                 true
             smooth:                 true
-            color:                  qgcPal.text
+            color:                  _currentItem ? "#ffffff" : _mutedIconColor
             visible:                _currentItem && missionItem.sequenceNumber !== 0
             source:                 "/res/TrashDelete.svg"
 

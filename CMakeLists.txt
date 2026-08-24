@@ -521,6 +521,31 @@ if(QGC_BUILD_TESTING)
     add_subdirectory(test)
 endif()
 
+# tngCore 런타임 DLL 을 exe 폴더로 복사 (Windows 전용).
+# 목록은 src/TcpConnection/CMakeLists.txt 에서 GLOBAL 속성으로 설정되며,
+# add_custom_command(TARGET) 은 타깃이 생성된 이 디렉터리에서만 호출 가능하므로 여기서 수행한다.
+if(WIN32)
+    get_property(_qgc_tngcore_runtime_dlls GLOBAL PROPERTY QGC_TNGCORE_RUNTIME_DLLS)
+    foreach(_dll ${_qgc_tngcore_runtime_dlls})
+        add_custom_command(TARGET ${CMAKE_PROJECT_NAME} POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                "${_dll}" "$<TARGET_FILE_DIR:${CMAKE_PROJECT_NAME}>"
+            COMMENT "QGC: Copying tngCore runtime DLL to output dir: ${_dll}"
+            VERBATIM
+        )
+    endforeach()
+
+    get_property(_qgc_mcml_runtime_dlls GLOBAL PROPERTY QGC_MCML_RUNTIME_DLLS)
+    foreach(_dll ${_qgc_mcml_runtime_dlls})
+        add_custom_command(TARGET ${CMAKE_PROJECT_NAME} POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                "${_dll}" "$<TARGET_FILE_DIR:${CMAKE_PROJECT_NAME}>"
+            COMMENT "QGC: Copying MCM-L runtime DLL to output dir: ${_dll}"
+            VERBATIM
+        )
+    endforeach()
+endif()
+
 if(QGC_CUSTOM_BUILD)
     find_package(Qt6 REQUIRED COMPONENTS ${CUSTOM_QT_COMPONENTS})
     target_sources(${CMAKE_PROJECT_NAME} PRIVATE ${CUSTOM_SOURCES})

@@ -20,6 +20,7 @@
 #include "AutoConnectSettings.h"
 #include "TCPLink.h"
 #include "UDPLink.h"
+#include "EncryptedMavlinkLink.h"
 
 #ifdef QGC_ENABLE_BLUETOOTH
 #include "BluetoothLink.h"
@@ -154,6 +155,9 @@ bool LinkManager::createConnectedLink(SharedLinkConfigurationPtr &config)
         link = std::make_shared<AirLinkLink>(config);
         break;
 #endif
+    case LinkConfiguration::TypeTngEncryptedTest:
+        link = std::make_shared<EncryptedMavlinkLink>(config);
+        break;
     case LinkConfiguration::TypeLast:
     default:
         break;
@@ -363,6 +367,9 @@ void LinkManager::loadLinkConfigurationList()
                 link = new AirLinkConfiguration(name);
                 break;
 #endif
+            case LinkConfiguration::TypeTngEncryptedTest:
+                link = new EncryptedMavlinkConfiguration(name);
+                break;
             case LinkConfiguration::TypeLast:
             default:
                 break;
@@ -567,6 +574,7 @@ QStringList LinkManager::linkTypeStrings() const
     list += tr("AirLink");
 #endif
     list += tr("Log Replay");
+    list += tr("Crypto_Connection");
 
     if (list.size() != static_cast<int>(LinkConfiguration::TypeLast)) {
         qCWarning(LinkManagerLog) << "Internal error";
@@ -933,10 +941,8 @@ bool LinkManager::_allowAutoConnectToBoard(QGCSerialPortInfo::BoardType_t boardT
 {
     switch (boardType) {
     case QGCSerialPortInfo::BoardTypePixhawk:
-        if (_autoConnectSettings->autoConnectPixhawk()->rawValue().toBool()) {
-            return true;
-        }
-        break;
+        // USB Pixhawk는 PortScanner 수동 연결만 사용 (LinkManager 자동 시리얼 연결 비활성)
+        return false;
     case QGCSerialPortInfo::BoardTypeSiKRadio:
         if (_autoConnectSettings->autoConnectSiKRadio()->rawValue().toBool()) {
             return true;

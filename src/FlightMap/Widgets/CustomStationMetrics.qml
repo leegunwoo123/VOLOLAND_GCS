@@ -8,9 +8,7 @@ import QGroundControl.Palette
 
 Rectangle {
     id: root
-    width: 300
-    //height: 200
-    height: mainLayout.implicitHeight + (mainLayout.anchors.margins * 2)
+    implicitHeight: mainLayout.implicitHeight + (mainLayout.anchors.margins * 2)
     color: qgcPal.window // QGC 기본 배경색 적용
     radius: ScreenTools.defaultFontPointSize * 0.5
 
@@ -28,8 +26,8 @@ Rectangle {
         GridLayout {
             Layout.fillWidth: true
             columns: 4
-            rowSpacing: 12
-            columnSpacing: 25
+            rowSpacing: ScreenTools.defaultFontPixelHeight * 0.35
+            columnSpacing: ScreenTools.defaultFontPixelWidth * 1.8
 
             // 데이터 값 공통 스타일 (글자 크기 통일)
             component DataLabel : QGCLabel {

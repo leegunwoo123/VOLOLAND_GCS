@@ -49,6 +49,20 @@ Q_MOC_INCLUDE("UTMSPManager.h")
 #ifndef QGC_AIRLINK_DISABLED
 Q_MOC_INCLUDE("AirLinkManager.h")
 #endif
+#ifndef QGC_NO_SERIAL_LINK
+class PortScanner;
+Q_MOC_INCLUDE("PortScanner.h")
+#endif
+class TngCryptoSettings;
+Q_MOC_INCLUDE("TngCryptoSettings.h")
+class CryptoLinkMonitor;
+Q_MOC_INCLUDE("CryptoLinkMonitor.h")
+class VideoEndpointSettings;
+Q_MOC_INCLUDE("VideoEndpointSettings.h")
+class VideoCryptoSettings;
+Q_MOC_INCLUDE("VideoCryptoSettings.h")
+class LoginIdHistory;
+Q_MOC_INCLUDE("LoginIdHistory.h")
 
 class QGroundControlQmlGlobal : public QObject
 {
@@ -80,8 +94,14 @@ public:
     Q_PROPERTY(ADSBVehicleManager*  adsbVehicleManager      READ    adsbVehicleManager      CONSTANT)
     Q_PROPERTY(QGCCorePlugin*       corePlugin              READ    corePlugin              CONSTANT)
     Q_PROPERTY(MissionCommandTree*  missionCommandTree      READ    missionCommandTree      CONSTANT)
+    Q_PROPERTY(TngCryptoSettings*   tngCryptoSettings       READ    tngCryptoSettings       CONSTANT)
+    Q_PROPERTY(CryptoLinkMonitor*   cryptoLinkMonitor       READ    cryptoLinkMonitor       CONSTANT)   ///< 암호화 링크 오류 이력/수신 통계 (툴바 알림)
+    Q_PROPERTY(VideoEndpointSettings* videoEndpointSettings READ    videoEndpointSettings   CONSTANT)   ///< CustomFlyView 드론/스테이션 영상 RTSP 주소(video_endpoints.ini)
+    Q_PROPERTY(VideoCryptoSettings*   videoCryptoSettings   READ    videoCryptoSettings     CONSTANT)
+    Q_PROPERTY(LoginIdHistory*        loginIdHistory        READ    loginIdHistory          CONSTANT)   ///< 마지막 로그인 아이디 (QGC .ini [LoginHistory])
 #ifndef QGC_NO_SERIAL_LINK
     Q_PROPERTY(FactGroup*           gpsRtk                  READ    gpsRtkFactGroup         CONSTANT)
+    Q_PROPERTY(PortScanner*         portScanner             READ    portScanner             CONSTANT)
 #endif
 #ifndef QGC_AIRLINK_DISABLED
     Q_PROPERTY(AirLinkManager*      airlinkManager          READ    airlinkManager          CONSTANT)
@@ -112,7 +132,6 @@ public:
     Q_PROPERTY(qreal zOrderWaypointLines        READ zOrderWaypointLines        CONSTANT)
     Q_PROPERTY(bool     hasAPMSupport           READ hasAPMSupport              CONSTANT)
     Q_PROPERTY(bool     hasMAVLinkInspector     READ hasMAVLinkInspector        CONSTANT)
-
 
     //-------------------------------------------------------------------------
     // Elevation Provider
@@ -169,8 +188,14 @@ public:
     VideoManager*           videoManager        ()  { return _videoManager; }
     QGCCorePlugin*          corePlugin          ()  { return _corePlugin; }
     SettingsManager*        settingsManager     ()  { return _settingsManager; }
+    TngCryptoSettings*      tngCryptoSettings   ()  { return _tngCryptoSettings; }
+    CryptoLinkMonitor*      cryptoLinkMonitor   ()  { return _cryptoLinkMonitor; }
+    VideoEndpointSettings*  videoEndpointSettings() { return _videoEndpointSettings; }
+    VideoCryptoSettings*    videoCryptoSettings ()  { return _videoCryptoSettings; }
+    LoginIdHistory*         loginIdHistory      ()  { return _loginIdHistory; }
 #ifndef QGC_NO_SERIAL_LINK
     FactGroup*              gpsRtkFactGroup     ()  { return _gpsRtkFactGroup; }
+    PortScanner*            portScanner         ()  { return _portScanner; }
 #endif
     ADSBVehicleManager*     adsbVehicleManager  ()  { return _adsbVehicleManager; }
     QmlUnitsConversion*     unitsConversion     ()  { return &_unitsConversion; }
@@ -245,8 +270,14 @@ private:
     SettingsManager*        _settingsManager        = nullptr;
     QGCCorePlugin*          _corePlugin             = nullptr;
     QGCPalette*             _globalPalette          = nullptr;
+    TngCryptoSettings*      _tngCryptoSettings      = nullptr;
+    CryptoLinkMonitor*      _cryptoLinkMonitor      = nullptr;
+    VideoEndpointSettings*  _videoEndpointSettings  = nullptr;
+    VideoCryptoSettings*    _videoCryptoSettings    = nullptr;
+    LoginIdHistory*         _loginIdHistory         = nullptr;
 #ifndef QGC_NO_SERIAL_LINK
     FactGroup*              _gpsRtkFactGroup        = nullptr;
+    PortScanner*            _portScanner            = nullptr;
 #endif
 #ifndef QGC_AIRLINK_DISABLED
     AirLinkManager*         _airlinkManager         = nullptr;

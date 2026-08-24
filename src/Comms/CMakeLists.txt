@@ -35,6 +35,8 @@ else()
             SerialLink.h
             UdpIODevice.cc
             UdpIODevice.h
+            PortScanner.cc
+            PortScanner.h
     )
 
     if(NOT ANDROID AND NOT IOS)

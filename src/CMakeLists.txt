@@ -43,6 +43,7 @@ target_link_libraries(${CMAKE_PROJECT_NAME}
         # TODO: Remove when support for this version is dropped
         AnalyzeViewModule
         AppSettingsModule
+        ManagementViewModule
         AutoPilotPluginsCommonModule
         FactControlsModule
         FactSystemModule

@@ -23,12 +23,39 @@
 
 #include <QtCore/QDateTime>
 #include <QtCore/QUrl>
+#include <QtCore/QUrlQuery>
 #include <QtQuick/QQuickItem>
 
 #include <gst/gst.h>
 #include <gst/gsterror.h>
+#include <gst/rtsp/gstrtsptransport.h>
 
 QGC_LOGGING_CATEGORY(GstVideoReceiverLog, "qgc.videomanager.videoreceiver.gstreamer.gstvideoreceiver")
+
+namespace {
+// rtspsrc "select-stream" 콜백: 비디오 스트림만 SETUP하고 오디오/기타(application 등)는 제외한다.
+// VLC 등 오디오+비디오를 함께 송출하는 서버에서, 미연결 오디오 pad로 인한
+// not-linked 파이프라인 에러(영상 미재생)를 원천 차단하기 위함.
+gboolean _qgcRtspSelectVideoStream(GstElement *src, guint num, GstCaps *caps, gpointer user_data)
+{
+    Q_UNUSED(src);
+    Q_UNUSED(num);
+    Q_UNUSED(user_data);
+
+    if (!caps) {
+        return TRUE;
+    }
+
+    const GstStructure *structure = gst_caps_get_structure(caps, 0);
+    if (!structure) {
+        return TRUE;
+    }
+
+    const gchar *media = gst_structure_get_string(structure, "media");
+    // media 필드가 없으면(판별 불가) 유지, 있으면 video일 때만 유지.
+    return (!media || (g_strcmp0(media, "video") == 0)) ? TRUE : FALSE;
+}
+} // namespace
 
 GstVideoReceiver::GstVideoReceiver(QObject *parent)
     : VideoReceiver(parent)
@@ -660,17 +687,38 @@ GstElement *GstVideoReceiver::_makeSource(const QString &input)
                 break;
             }
 
-            // location에는 쿼리/프래그먼트 제거한 URL만 전달 (MediaMTX 등이 path만으로 매칭하므로 ?rtsp_transport=udp 제거)
+            // rtsp_transport는 QGC 로컬 옵션이다. rtspsrc location에는 전달하지 않는다.
+            const QString rtpTransport =
+                QUrlQuery(sourceUrl).queryItemValue(QStringLiteral("rtsp_transport")).trimmed().toLower();
             const QUrl locationUrl = sourceUrl.adjusted(QUrl::RemoveQuery | QUrl::RemoveFragment);
             const QString rtspLocation = locationUrl.toString();
 
-            // RTSP 라이브 스트림: UDP 전송(지연·헤드오브라인 블로킹 완화), low-latency 시 버퍼 최소화
+            // RTSP 제어는 TCP를 사용하고, RTP 하위 전송은 URL 옵션(udp/tcp/auto)으로 선택한다.
             const int latencyMs = lowLatency() ? 10 : 25;
             g_object_set(source,
                          "location", rtspLocation.toUtf8().constData(),
                          "latency", latencyMs,
-                         "protocols", 0x01,  /* GstRtspLowerTrans: UDP — live streaming via server */
                          nullptr);
+
+            guint rtpProtocols = 0;
+            if (rtpTransport == QLatin1String("udp")) {
+                rtpProtocols = GST_RTSP_LOWER_TRANS_UDP;
+            } else if (rtpTransport == QLatin1String("tcp")) {
+                rtpProtocols = GST_RTSP_LOWER_TRANS_TCP;
+            } else if (rtpTransport == QLatin1String("auto")) {
+                rtpProtocols = GST_RTSP_LOWER_TRANS_UDP | GST_RTSP_LOWER_TRANS_TCP;
+            } else if (!rtpTransport.isEmpty()) {
+                qCWarning(GstVideoReceiverLog) << "Unsupported RTP transport, using rtspsrc default:" << rtpTransport;
+            }
+
+            if (rtpProtocols != 0) {
+                g_object_set(source,
+                             "protocols", rtpProtocols,
+                             nullptr);
+            }
+
+            // 비디오 스트림만 SETUP (오디오 등 제외) — 미연결 pad로 인한 not-linked 방지
+            (void) g_signal_connect(source, "select-stream", G_CALLBACK(_qgcRtspSelectVideoStream), nullptr);
         } else if (isTcpMPEGTS) {
             source = gst_element_factory_make("tcpclientsrc", "source");
             if (!source) {

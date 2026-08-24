@@ -37,7 +37,7 @@ Item {
     property string deviceName: ""
 
     // 부모로부터 받은 제약 조건 내에서 전체 크기 확보
-    implicitWidth:  350
+    implicitWidth:  mainWindow.sidebarTargetWidth
     implicitHeight: instrumentPanel.height + telemetryBar.height + 10
 
     // 1. 위쪽: 계기판 (기준점)

@@ -23,6 +23,8 @@
 #include <QtCore/QJsonArray>
 #include <QtCore/QJsonDocument>
 #include <QtCore/QJsonObject>
+#include <QtCore/QPointer>
+#include <QtCore/QScopedPointer>
 #include <QtQml/QQmlEngine>
 
 QGC_LOGGING_CATEGORY(CameraManagerLog, "qgc.camera.qgccameramanager")
@@ -437,6 +439,15 @@ static void _requestCameraInfoCommandResultHandler(void* resultHandlerData, int 
 static void _requestCameraInfoMessageResultHandler(void* resultHandlerData, MAV_RESULT result, Vehicle::RequestMessageResultHandlerFailureCode_t failureCode, const mavlink_message_t& message);
 static void _requestCameraInfoHelper(QGCCameraManager* manager, QGCCameraManager::CameraStruct* pInfo);
 
+namespace {
+// 카메라 정보 요청 결과 핸들러로 넘기는 컨텍스트.
+// raw CameraStruct* 를 resultHandlerData 로 넘기면, 콜백이 지연 발화(명령 재시도 타임아웃/백오프)하는 동안
+// CameraStruct 가 파괴될 경우 use-after-free 가 발생한다.
+// QPointer 는 대상 QObject 가 소멸되면 자동으로 null 이 되므로, 콜백에서 생존 여부를 안전하게 확인할 수 있다.
+struct CameraInfoRetryContext {
+    QPointer<QGCCameraManager::CameraStruct> cameraInfo;
+};
+} // namespace
 
 static void _handleCameraInfoRetry(QGCCameraManager::CameraStruct* cameraInfo)
 {
@@ -467,24 +478,40 @@ static void _handleCameraInfoRetry(QGCCameraManager::CameraStruct* cameraInfo)
 
 static void _requestCameraInfoCommandResultHandler(void* resultHandlerData, int compId, const mavlink_command_ack_t& ack, Vehicle::MavCmdResultFailureCode_t failureCode)
 {
-    auto  cameraInfo = static_cast<QGCCameraManager::CameraStruct*>(resultHandlerData);
+    // 요청 시점에 힙 할당한 컨텍스트. 결과 핸들러는 명령당 정확히 1회 호출되므로 여기서 소유권을 회수한다.
+    QScopedPointer<CameraInfoRetryContext> ctx(static_cast<CameraInfoRetryContext*>(resultHandlerData));
 
-    if (ack.result != MAV_RESULT_ACCEPTED) {
-        qCDebug(CameraManagerLog) << "MAV_CMD_REQUEST_CAMERA_INFORMATION failed. compId" << cameraInfo->compID << "Result:" << ack.result << "FailureCode:" << failureCode << "retryCount:" << cameraInfo->retryCount;
-
-        _handleCameraInfoRetry(cameraInfo);
+    if (ack.result == MAV_RESULT_ACCEPTED) {
+        return;
     }
+
+    // 콜백 대기 중 CameraStruct 가 파괴되면 QPointer 가 null 이 되어 use-after-free 를 차단한다.
+    QGCCameraManager::CameraStruct* cameraInfo = ctx->cameraInfo.data();
+    if (!cameraInfo) {
+        qCDebug(CameraManagerLog) << "MAV_CMD_REQUEST_CAMERA_INFORMATION result for compId" << compId << "arrived after CameraStruct destroyed; ignoring.";
+        return;
+    }
+
+    qCDebug(CameraManagerLog) << "MAV_CMD_REQUEST_CAMERA_INFORMATION failed. compId" << cameraInfo->compID << "Result:" << ack.result << "FailureCode:" << failureCode << "retryCount:" << cameraInfo->retryCount;
+    _handleCameraInfoRetry(cameraInfo);
 }
 
 static void _requestCameraInfoMessageResultHandler(void* resultHandlerData, MAV_RESULT result, Vehicle::RequestMessageResultHandlerFailureCode_t failureCode, [[maybe_unused]] const mavlink_message_t& message)
 {
-    auto cameraInfo = static_cast<QGCCameraManager::CameraStruct*>(resultHandlerData);
+    QScopedPointer<CameraInfoRetryContext> ctx(static_cast<CameraInfoRetryContext*>(resultHandlerData));
 
-    if (result != MAV_RESULT_ACCEPTED) {
-        qCDebug(CameraManagerLog) << "MAV_CMD_REQUEST_MESSAGE:MAVLINK_MSG_ID_CAMERA_INFORMATION failed. compId" << cameraInfo->compID << "Result:" << result << "FailureCode:" << failureCode << "retryCount:" << cameraInfo->retryCount;
-
-        _handleCameraInfoRetry(cameraInfo);
+    if (result == MAV_RESULT_ACCEPTED) {
+        return;
     }
+
+    QGCCameraManager::CameraStruct* cameraInfo = ctx->cameraInfo.data();
+    if (!cameraInfo) {
+        qCDebug(CameraManagerLog) << "MAV_CMD_REQUEST_MESSAGE:MAVLINK_MSG_ID_CAMERA_INFORMATION result arrived after CameraStruct destroyed; ignoring.";
+        return;
+    }
+
+    qCDebug(CameraManagerLog) << "MAV_CMD_REQUEST_MESSAGE:MAVLINK_MSG_ID_CAMERA_INFORMATION failed. compId" << cameraInfo->compID << "Result:" << result << "FailureCode:" << failureCode << "retryCount:" << cameraInfo->retryCount;
+    _handleCameraInfoRetry(cameraInfo);
 }
 
 //-----------------------------------------------------------------------------
@@ -499,13 +526,13 @@ static void _requestCameraInfoHelper(QGCCameraManager* manager, QGCCameraManager
     // Make immediate request - alternate between REQUEST_MESSAGE and REQUEST_CAMERA_INFORMATION
     if (pInfo->retryCount % 2 == 0) {
         qCDebug(CameraManagerLog) << "Using MAV_CMD_REQUEST_MESSAGE for compId" << pInfo->compID;
-        manager->vehicle()->requestMessage(_requestCameraInfoMessageResultHandler, pInfo, pInfo->compID, MAVLINK_MSG_ID_CAMERA_INFORMATION);
+        manager->vehicle()->requestMessage(_requestCameraInfoMessageResultHandler, new CameraInfoRetryContext{ pInfo }, pInfo->compID, MAVLINK_MSG_ID_CAMERA_INFORMATION);
     } else {
         qCDebug(CameraManagerLog) << "Using MAV_CMD_REQUEST_CAMERA_INFORMATION for compId" << pInfo->compID;
 
         Vehicle::MavCmdAckHandlerInfo_t ackHandlerInfo;
         ackHandlerInfo.resultHandler        = _requestCameraInfoCommandResultHandler;
-        ackHandlerInfo.resultHandlerData    = pInfo;
+        ackHandlerInfo.resultHandlerData    = new CameraInfoRetryContext{ pInfo };
         ackHandlerInfo.progressHandler      = nullptr;
         ackHandlerInfo.progressHandlerData  = nullptr;
 

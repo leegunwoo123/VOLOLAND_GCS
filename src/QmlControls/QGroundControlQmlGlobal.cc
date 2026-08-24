@@ -48,9 +48,15 @@
 #include "VideoManager.h"
 #include "MultiVehicleManager.h"
 #include "QGCLoggingCategory.h"
+#include "TngCryptoSettings.h"
+#include "CryptoLinkMonitor.h"
+#include "VideoEndpointSettings.h"
+#include "VideoCryptoSettings.h"
+#include "LoginIdHistory.h"
 #ifndef QGC_NO_SERIAL_LINK
 #include "GPSManager.h"
 #include "GPSRtk.h"
+#include "PortScanner.h"
 #endif
 #ifdef QT_DEBUG
 #include "MockLink.h"
@@ -144,8 +150,14 @@ QGroundControlQmlGlobal::QGroundControlQmlGlobal(QObject *parent)
     , _settingsManager(SettingsManager::instance())
     , _corePlugin(QGCCorePlugin::instance())
     , _globalPalette(new QGCPalette(this))
+    , _tngCryptoSettings(TngCryptoSettings::instance())
+    , _cryptoLinkMonitor(CryptoLinkMonitor::instance())
+    , _videoEndpointSettings(VideoEndpointSettings::instance())
+    , _videoCryptoSettings(VideoCryptoSettings::instance())
+    , _loginIdHistory(LoginIdHistory::instance())
 #ifndef QGC_NO_SERIAL_LINK
     , _gpsRtkFactGroup(GPSManager::instance()->gpsRtk()->gpsRtkFactGroup())
+    , _portScanner(PortScanner::instance())
 #endif
 #ifndef QGC_AIRLINK_DISABLED
     , _airlinkManager(AirLinkManager::instance())

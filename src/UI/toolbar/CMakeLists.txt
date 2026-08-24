@@ -14,7 +14,9 @@ qt_add_qml_module(ToolbarModule
         APMSupportForwardingIndicator.qml
         ArmedIndicator.qml
         CustomToolbar.qml
-        ServerSettingsPopup.qml
+        CryptoAlertIndicator.qml
+        CryptoAlertPopup.qml
+        LoginPopup.qml
         UserInfoPopup.qml
         GCSControlIndicator.qml
         GimbalIndicator.qml
@@ -29,6 +31,12 @@ qt_add_qml_module(ToolbarModule
         VehicleGPSIndicator.qml
         DroneControlPanel.qml
         DroneStatusMessage.qml
+        FramelessWindowTitleBar.qml
+        PanelButton.qml
+        VideoTile.qml
+        MultiViewGrid.qml
+        MultiViewWindow.qml
+        WindowResizeLayer.qml
         DroneVideo.qml
         StationControlPanel.qml
         StationStatusMessage.qml

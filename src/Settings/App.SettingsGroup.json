@@ -254,6 +254,13 @@
     "shortDesc": "AirLink Password",
     "type": "string",
     "default": ""
+},
+{
+    "name":             "panelWidthsLinked",
+    "shortDesc":        "Link left/right side panel widths",
+    "longDesc":         "When enabled, resizing either side panel applies the same width to both panels.",
+    "type":             "bool",
+    "default":          false
 }
 ]
 }

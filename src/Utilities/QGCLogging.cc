@@ -36,8 +36,13 @@ static void msgHandler(QtMsgType type, const QMessageLogContext &context, const 
     // Format the message using Qt's pattern
     const QString message = qFormatLogMessage(type, context, msg);
 
+    // Console 페이지 자신의 바인딩 경고는 같은 목록에 넣지 않는다.
+    // 넣으면 "Unable to assign [undefined] to QString" 이 줄을 늘리고 다시 경고가 난다.
+    const QString file = QString::fromUtf8(context.file ? context.file : "");
+    const bool fromAppMessages = file.contains(QLatin1String("AppMessages.qml"));
+
     // Filter out Qt Quick internals
-    if (!QString(context.category).startsWith("qt.quick")) {
+    if (!fromAppMessages && !QString(context.category).startsWith("qt.quick")) {
         QGCLogging::instance()->log(message);
     }
 
@@ -95,20 +100,18 @@ void QGCLogging::logToConsole(const QString &message)
 
 void QGCLogging::_threadsafeLog(const QString &message)
 {
-    // Notify view of new row
+    // QStringListModel::insertRows 가 이미 begin/endInsertRows 를 호출한다.
+    // 여기서 한 번 더 감싸면 뷰가 빈 행을 그리다 display 가 undefined 가 된다.
     const int line = rowCount();
-    beginInsertRows(QModelIndex(), line, line);
-    (void) QStringListModel::insertRows(line, 1);
-    (void) setData(index(line, 0), message, Qt::DisplayRole);
-    endInsertRows();
+    if (QStringListModel::insertRows(line, 1)) {
+        (void) setData(index(line, 0), message, Qt::DisplayRole);
+    }
 
     // Trim old entries to cap memory usage
     static constexpr const int kMaxLogRows = kMaxLogFileSize / 100;
     if (rowCount() > kMaxLogRows) {
         const int removeCount = rowCount() - kMaxLogRows;
-        beginRemoveRows(QModelIndex(), 0, removeCount - 1);
         (void) removeRows(0, removeCount);
-        endRemoveRows();
     }
 
     // Queue for disk flush

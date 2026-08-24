@@ -59,8 +59,18 @@ target_sources(${CMAKE_PROJECT_NAME}
         CustomMissionReorderHelper.h
         CustomRtspReceiver.cc
         CustomRtspReceiver.h
+        EncryptedRtspClient.cc
+        EncryptedRtspClient.h
+        TngVideoCryptoService.cc
+        TngVideoCryptoService.h
         VideoPassthroughHelper.cc
         VideoPassthroughHelper.h
+        VideoEndpointSettings.cc
+        VideoEndpointSettings.h
+        VideoCryptoSettings.cc
+        VideoCryptoSettings.h
+        LoginIdHistory.cc
+        LoginIdHistory.h
         WindowHelper.cc
         WindowHelper.h
 )

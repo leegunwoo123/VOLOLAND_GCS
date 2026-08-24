@@ -262,9 +262,13 @@ void WindowHelper::handleAeroSnap(QObject* window, int mouseX, int mouseY)
     
     QRect screenGeometry = targetScreen->geometry();
     int screenWidth = screenGeometry.width();
-    int screenHeight = screenGeometry.height();
     int screenX = screenGeometry.x();
     int screenY = screenGeometry.y();
+
+    // 가장자리 감지는 모니터 전체(geometry) 기준으로 하되, 스냅 후 창 크기는 작업표시줄을
+    // 제외한 작업영역(availableGeometry) 기준으로 잡는다. geometry(모니터 전체 높이)로 크기를
+    // 잡으면 하단이 작업표시줄 아래로 내려가 가려진다. (작업표시줄이 어느 변에 있든 대응)
+    const QRect workArea = targetScreen->availableGeometry();
     
     qDebug() << "WindowHelper::handleAeroSnap - Screen geometry:" << screenGeometry;
     qDebug() << "WindowHelper::handleAeroSnap - Mouse position:" << mouseX << mouseY;
@@ -284,7 +288,7 @@ void WindowHelper::handleAeroSnap(QObject* window, int mouseX, int mouseY)
     if (relativeX <= snapThreshold && relativeX >= 0) {
         qDebug() << "WindowHelper::handleAeroSnap - Left edge detected, snapping to left half";
         qWindow->showNormal();
-        qWindow->setGeometry(screenX, screenY, screenWidth / 2, screenHeight);
+        qWindow->setGeometry(workArea.x(), workArea.y(), workArea.width() / 2, workArea.height());
         return;
     }
     
@@ -292,7 +296,7 @@ void WindowHelper::handleAeroSnap(QObject* window, int mouseX, int mouseY)
     if (relativeX >= screenWidth - snapThreshold && relativeX <= screenWidth) {
         qDebug() << "WindowHelper::handleAeroSnap - Right edge detected, snapping to right half";
         qWindow->showNormal();
-        qWindow->setGeometry(screenX + screenWidth / 2, screenY, screenWidth / 2, screenHeight);
+        qWindow->setGeometry(workArea.x() + workArea.width() / 2, workArea.y(), workArea.width() / 2, workArea.height());
         return;
     }
     
@@ -341,11 +345,9 @@ void WindowHelper::handleAeroSnapShortcut(QObject* window, const QString& direct
         return;
     }
     
-    QRect screenGeometry = screen->geometry();
-    int screenWidth = screenGeometry.width();
-    int screenHeight = screenGeometry.height();
-    int screenX = screenGeometry.x();
-    int screenY = screenGeometry.y();
+    // 스냅 크기는 작업표시줄을 제외한 작업영역(availableGeometry) 기준. geometry(모니터 전체)로
+    // 잡으면 하단이 작업표시줄 아래로 가려진다.
+    const QRect workArea = screen->availableGeometry();
     
     if (direction == "up") {
         // Win + ↑ : 최대화
@@ -364,12 +366,12 @@ void WindowHelper::handleAeroSnapShortcut(QObject* window, const QString& direct
         // Win + ← : 좌반 화면으로 스냅
         qDebug() << "WindowHelper::handleAeroSnapShortcut - Snapping to left half";
         qWindow->showNormal();
-        qWindow->setGeometry(screenX, screenY, screenWidth / 2, screenHeight);
+        qWindow->setGeometry(workArea.x(), workArea.y(), workArea.width() / 2, workArea.height());
     } else if (direction == "right") {
         // Win + → : 우반 화면으로 스냅
         qDebug() << "WindowHelper::handleAeroSnapShortcut - Snapping to right half";
         qWindow->showNormal();
-        qWindow->setGeometry(screenX + screenWidth / 2, screenY, screenWidth / 2, screenHeight);
+        qWindow->setGeometry(workArea.x() + workArea.width() / 2, workArea.y(), workArea.width() / 2, workArea.height());
     }
     #else
     // Linux/macOS에서는 Aero Snap 단축키 미지원

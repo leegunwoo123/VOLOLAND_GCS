@@ -34,20 +34,20 @@ Rectangle {
             id:         grid
             columns:    2
 
-            QGCLabel { text: qsTr("QGroundControl User Guide") }
+            QGCLabel { text: qsTr("Vololand 홈페이지") }
             QGCLabel {
                 linkColor:          qgcPal.text
-                text:               "<a href=\"https://docs.qgroundcontrol.com\">https://docs.qgroundcontrol.com</a>"
+                text:               "<a href=\"https://vololand.com\">https://vololand.com</a>"
                 onLinkActivated:    (link) => Qt.openUrlExternally(link)
             }
 
-            QGCLabel { text: qsTr("PX4 Users Discussion Forum") }
+            QGCLabel { text: qsTr("VGCS Manual") }
             QGCLabel {
                 linkColor:          qgcPal.text
-                text:               "<a href=\"http://discuss.px4.io/c/qgroundcontrol\">http://discuss.px4.io/c/qgroundcontrol</a>"
+                text:               "<a href=\"https://vololand.com/board/notice\">https://vololand.com/board/notice</a>"
                 onLinkActivated:    (link) => Qt.openUrlExternally(link)
             }
-
+            /*
             QGCLabel { text: qsTr("ArduPilot Users Discussion Forum") }
             QGCLabel {
                 linkColor:          qgcPal.text
@@ -61,6 +61,7 @@ Rectangle {
                 text:               "<a href=\"https://discord.com/channels/1022170275984457759/1022185820683255908\">https://discord.com/channels/1022170275984457759/1022185820683255908</a>"
                 onLinkActivated:    (link) => Qt.openUrlExternally(link)
             }
+            */            
         }
     }
 }

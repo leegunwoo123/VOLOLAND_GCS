@@ -22,6 +22,9 @@ RowLayout {
     spacing:    ScreenTools.defaultFontPixelWidth
 
     property var    _activeVehicle:     QGroundControl.multiVehicleManager.activeVehicle
+    property bool   _communicationLost: _activeVehicle && _activeVehicle.vehicleLinkManager
+                                        ? _activeVehicle.vehicleLinkManager.communicationLost
+                                        : false
     property var    _vehicleInAir:      _activeVehicle ? _activeVehicle.flying || _activeVehicle.landing : false
     property bool   _vtolInFWDFlight:   _activeVehicle ? _activeVehicle.vtolInFwdFlight : false
     property bool   _armed:             _activeVehicle ? _activeVehicle.armed : false
@@ -53,7 +56,7 @@ RowLayout {
         function mainStatusText() {
             var statusText
             if (_activeVehicle) {
-                if (_communicationLost) {
+                if (control._communicationLost) {
                     _mainStatusBGColor = "red"
                     return mainStatusLabel._commLostText
                 }

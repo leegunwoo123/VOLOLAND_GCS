@@ -20,6 +20,12 @@ QGCFlickable {
     readonly property real  _editFieldWidth:    Math.min(width - _margin * 2, ScreenTools.defaultFontPixelWidth * 15)
     readonly property real  _margin:            ScreenTools.defaultFontPixelWidth / 2
     readonly property real  _radius:            ScreenTools.defaultFontPixelWidth / 2
+    readonly property color _panelCardColor:     "#252525"
+    readonly property color _panelItemColor:     "#151515"
+    readonly property color _panelFieldColor:    "#2a2a2a"
+    readonly property color _panelBorderColor:   "#333333"
+    readonly property color _panelAccentColor:   "#00BFFF"
+    readonly property color _panelTextColor:     "#e0e0e0"
 
     Rectangle {
         id:     geoFenceEditorRect
@@ -27,7 +33,9 @@ QGCFlickable {
         anchors.right:  parent.right
         height: geoFenceItems.y + geoFenceItems.height + (_margin * 2)
         radius: _radius
-        color:  qgcPal.missionItemEditor
+        color:  _panelCardColor
+        border.color: _panelBorderColor
+        border.width: 1
 
         QGCLabel {
             id:                 geoFenceLabel
@@ -35,6 +43,8 @@ QGCFlickable {
             anchors.left:       parent.left
             anchors.top:        parent.top
             text:               qsTr("GeoFence")
+            color:              _panelTextColor
+            font.bold:          true
             anchors.leftMargin: ScreenTools.defaultFontPixelWidth
         }
 
@@ -45,8 +55,10 @@ QGCFlickable {
             anchors.right:      parent.right
             anchors.top:        geoFenceLabel.bottom
             height:             fenceColumn.y + fenceColumn.height + (_margin * 2)
-            color:              qgcPal.windowShadeDark
+            color:              _panelItemColor
             radius:             _radius
+            border.color:       _panelBorderColor
+            border.width:       1
 
             Column {
                 id:                 fenceColumn
@@ -61,6 +73,7 @@ QGCFlickable {
                     anchors.right:      parent.right
                     wrapMode:           Text.WordWrap
                     font.pointSize:     myGeoFenceController.supported ? ScreenTools.smallFontPointSize : ScreenTools.defaultFontPointSize
+                    color:              _panelTextColor
                     text:               myGeoFenceController.supported ?
                                             qsTr("GeoFencing allows you to set a virtual fence around the area you want to fly in.") :
                                             qsTr("This vehicle does not support GeoFence.")
@@ -119,6 +132,8 @@ QGCFlickable {
                     QGCButton {
                         Layout.fillWidth:   true
                         text:               qsTr("Polygon Fence")
+                        backgroundColor:    _panelFieldColor
+                        textColor:          "#ffffff"
 
                         onClicked: {
                             var rect = Qt.rect(flightMap.centerViewport.x, flightMap.centerViewport.y, flightMap.centerViewport.width, flightMap.centerViewport.height)
@@ -131,6 +146,8 @@ QGCFlickable {
                     QGCButton {
                         Layout.fillWidth:   true
                         text:               qsTr("Circular Fence")
+                        backgroundColor:    _panelFieldColor
+                        textColor:          "#ffffff"
 
                         onClicked: {
                             var rect = Qt.rect(flightMap.centerViewport.x, flightMap.centerViewport.y, flightMap.centerViewport.width, flightMap.centerViewport.height)
@@ -210,6 +227,8 @@ QGCFlickable {
                             QGCButton {
                                 text:               qsTr("Del")
                                 Layout.alignment:   Qt.AlignHCenter
+                                backgroundColor:    _panelFieldColor
+                                textColor:          "#ffffff"
                                 onClicked:          myGeoFenceController.deletePolygon(index)
                             }
                         }
@@ -302,6 +321,8 @@ QGCFlickable {
                             QGCButton {
                                 text:               qsTr("Del")
                                 Layout.alignment:   Qt.AlignHCenter
+                                backgroundColor:    _panelFieldColor
+                                textColor:          "#ffffff"
                                 onClicked:          myGeoFenceController.deleteCircle(index)
                             }
                         }
@@ -319,6 +340,8 @@ QGCFlickable {
                         visible:            breachReturnSection.visible && !myGeoFenceController.breachReturnPoint.isValid
                         anchors.left:       parent.left
                         anchors.right:      parent.right
+                        backgroundColor:    _panelFieldColor
+                        textColor:          "#ffffff"
 
                         onClicked: myGeoFenceController.breachReturnPoint = flightMap.center
                     }
@@ -328,6 +351,8 @@ QGCFlickable {
                         visible:            breachReturnSection.visible && myGeoFenceController.breachReturnPoint.isValid
                         anchors.left:       parent.left
                         anchors.right:      parent.right
+                        backgroundColor:    _panelFieldColor
+                        textColor:          "#ffffff"
 
                         onClicked: myGeoFenceController.breachReturnPoint = QtPositioning.coordinate()
                     }

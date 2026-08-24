@@ -18,6 +18,7 @@
 #include "StandardModes.h"
 #include "GeoFenceManager.h"
 #include "RallyPointManager.h"
+#include "SerialLink.h"
 #include "QGCLoggingCategory.h"
 
 QGC_LOGGING_CATEGORY(InitialConnectStateMachineLog, "qgc.vehicle.initialconnectstatemachine")
@@ -301,9 +302,32 @@ void InitialConnectStateMachine::_stateRequestParameters(StateMachine* stateMach
     Vehicle*                    vehicle         = connectMachine->_vehicle;
 
     qCDebug(InitialConnectStateMachineLog) << "_stateRequestParameters";
-    connect(vehicle->_parameterManager, &ParameterManager::loadProgressChanged, connectMachine,
-            &InitialConnectStateMachine::gotProgressUpdate);
-    vehicle->_parameterManager->refreshAllParameters();
+
+    const SharedLinkInterfacePtr sharedLink = vehicle->vehicleLinkManager()->primaryLink().lock();
+
+    // PortScanner가 생성한 USB 직접 링크(usbDirect=true)만 수동 로드로 전환.
+    // 서버·UDP·TCP 등 나머지 링크는 기존처럼 자동 로드한다.
+    bool isUsbDirect = false;
+    if (sharedLink) {
+        const SharedLinkConfigurationPtr cfg = sharedLink->linkConfiguration();
+        if (cfg) {
+            SerialConfiguration *serialCfg = qobject_cast<SerialConfiguration*>(cfg.get());
+            isUsbDirect = serialCfg && serialCfg->usbDirect();
+        }
+    }
+
+    if (!isUsbDirect) {
+        // 서버·UDP·TCP·고지연·로그리플레이 연결 → 자동 파라미터 로드
+        qCDebug(InitialConnectStateMachineLog) << "_stateRequestParameters: auto-load (non-USB-direct link)";
+        connect(vehicle->_parameterManager, &ParameterManager::loadProgressChanged, connectMachine,
+                &InitialConnectStateMachine::gotProgressUpdate);
+        vehicle->_parameterManager->refreshAllParameters();
+        return;
+    }
+
+    // USB 직접 연결(PortScanner): 파라미터 요청 생략, 사용자가 Vehicle Configuration에서 수동 요청
+    qCDebug(InitialConnectStateMachineLog) << "_stateRequestParameters: skipping auto-load for USB-direct link";
+    connectMachine->advance();
 }
 
 void InitialConnectStateMachine::_stateRequestMission(StateMachine* stateMachine)

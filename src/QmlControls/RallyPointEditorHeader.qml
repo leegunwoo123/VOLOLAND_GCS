@@ -14,13 +14,19 @@ QGCFlickable {
 
     readonly property real  _margin: ScreenTools.defaultFontPixelWidth / 2
     readonly property real  _radius: ScreenTools.defaultFontPixelWidth / 2
+    readonly property color _panelCardColor:   "#252525"
+    readonly property color _panelItemColor:   "#151515"
+    readonly property color _panelBorderColor: "#333333"
+    readonly property color _panelTextColor:   "#e0e0e0"
 
     Rectangle {
         id:     outerEditorRect
         width:  parent.width
         height: innerEditorRect.y + innerEditorRect.height + (_margin * 2)
         radius: _radius
-        color:  qgcPal.missionItemEditor
+        color:  _panelCardColor
+        border.color: _panelBorderColor
+        border.width: 1
 
         QGCLabel {
             id:                 editorLabel
@@ -28,6 +34,8 @@ QGCFlickable {
             anchors.left:       parent.left
             anchors.top:        parent.top
             text:               qsTr("Rally Points")
+            color:              _panelTextColor
+            font.bold:          true
         }
 
         Rectangle {
@@ -37,8 +45,10 @@ QGCFlickable {
             anchors.right:      parent.right
             anchors.top:        editorLabel.bottom
             height:             infoLabel.height + (_margin * 2)
-            color:              qgcPal.windowShadeDark
+            color:              _panelItemColor
             radius:             _radius
+            border.color:       _panelBorderColor
+            border.width:       1
 
             QGCLabel {
                 id:                 infoLabel
@@ -48,6 +58,7 @@ QGCFlickable {
                 anchors.right:      parent.right
                 wrapMode:           Text.WordWrap
                 font.pointSize:     ScreenTools.smallFontPointSize
+                color:              _panelTextColor
                 text:               qsTr("Rally Points provide alternate landing points when performing a Return to Launch (RTL).")
             }
 

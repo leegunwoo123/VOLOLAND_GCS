@@ -107,12 +107,14 @@ AnalyzePage {
             }
 
             ColumnLayout {
+                Layout.preferredWidth: mainWindow.sidebarTargetWidth - ScreenTools.defaultFontPixelWidth / 2 - 1
                 spacing: ScreenTools.defaultFontPixelWidth
                 Layout.alignment: Qt.AlignTop
                 Layout.fillWidth: false
 
                 QGCButton {
                     Layout.fillWidth: true
+                    Layout.preferredHeight: ScreenTools.defaultFontPixelHeight * 2.5
                     enabled: !logDownloadController.requestingList && !logDownloadController.downloadingLogs
                     text: qsTr("Refresh")
 
@@ -128,6 +130,7 @@ AnalyzePage {
 
                 QGCButton {
                     Layout.fillWidth: true
+                    Layout.preferredHeight: ScreenTools.defaultFontPixelHeight * 2.5
                     enabled: !logDownloadController.requestingList && !logDownloadController.downloadingLogs
                     text: qsTr("Download")
 
@@ -167,6 +170,7 @@ AnalyzePage {
 
                 QGCButton {
                     Layout.fillWidth: true
+                    Layout.preferredHeight: ScreenTools.defaultFontPixelHeight * 2.5
                     enabled: !logDownloadController.requestingList && !logDownloadController.downloadingLogs && (logDownloadController.model.count > 0)
                     text: qsTr("Erase All")
                     onClicked: mainWindow.showMessageDialog(
@@ -179,6 +183,7 @@ AnalyzePage {
 
                 QGCButton {
                     Layout.fillWidth: true
+                    Layout.preferredHeight: ScreenTools.defaultFontPixelHeight * 2.5
                     text: qsTr("Cancel")
                     enabled: logDownloadController.requestingList || logDownloadController.downloadingLogs
                     onClicked: logDownloadController.cancel()

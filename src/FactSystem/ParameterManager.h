@@ -58,7 +58,7 @@ public:
     QList<int> componentIds() const;
 
     /// Re-request the full set of parameters from the autopilot
-    void refreshAllParameters(uint8_t componentID = MAV_COMP_ID_ALL);
+    Q_INVOKABLE void refreshAllParameters(uint8_t componentID = MAV_COMP_ID_ALL);
 
     /// Request a refresh on the specific parameter
     void refreshParameter(int componentId, const QString &paramName);

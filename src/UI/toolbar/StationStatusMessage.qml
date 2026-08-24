@@ -2,6 +2,8 @@ import QtQuick 6.8
 import QtQuick.Controls 6.8
 import QtQuick.Layouts 6.8
 
+import QGroundControl.ScreenTools
+
 Rectangle{
 
     id: root
@@ -12,6 +14,19 @@ Rectangle{
     radius: 4
 
     property string selectedStation: ""
+
+    // 스테이션 선택이 바뀌면 이전 메시지 초기화
+    onSelectedStationChanged: {
+        messageModel.clear()
+    }
+
+    function getSeverityColor(severity) {
+        switch(severity) {
+            case 0: case 1: case 2: return "#FF4444"  // 위험 (EMERGENCY/ALERT/CRITICAL)
+            case 3: case 4:         return "#FFBB33"  // 경고 (ERROR/WARNING)
+            default:                return "#FFFFFF"  // 일반 (NOTICE/INFO/DEBUG)
+        }
+    }
 
     ListModel{
 
@@ -27,7 +42,7 @@ Rectangle{
             Text {
                 text: selectedStation + " Messages"
                 color: "#AAAAAA"
-                font.pixelSize: 12
+                font.pointSize: ScreenTools.smallFontPointSize
                 font.bold: true
             }
 
@@ -55,7 +70,7 @@ Rectangle{
                             width: parent.width - 10
                             text: model.text
                             color: getSeverityColor(model.severity) // 심각도에 따른 색상 변경
-                            font.pixelSize: 13
+                            font.pointSize: ScreenTools.defaultFontPointSize
                             wrapMode: Text.WrapAnywhere // 자동 줄바꿈
                             lineHeight: 1.2
                         }

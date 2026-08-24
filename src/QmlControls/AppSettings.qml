@@ -10,7 +10,6 @@
 
 import QtQuick
 import QtQuick.Controls
-import QtQuick.Layouts
 
 import QGroundControl
 import QGroundControl.Palette
@@ -28,6 +27,8 @@ Rectangle {
     readonly property real _horizontalMargin:   _defaultTextWidth / 2
     readonly property real _verticalMargin:     _defaultTextHeight / 2
     readonly property real _buttonHeight:       ScreenTools.isTinyScreen ? ScreenTools.defaultFontPixelHeight * 3 : ScreenTools.defaultFontPixelHeight * 2
+    readonly property real _sidebarTargetWidth: mainWindow.sidebarTargetWidth
+    readonly property real _buttonColumnWidth:  _sidebarTargetWidth - _horizontalMargin - 1
 
     property bool _first: true
 
@@ -63,74 +64,100 @@ Rectangle {
 
     SettingsPagesModel { id: settingsPagesModel }
 
-    QGCFlickable {
-        id:                 buttonList
-        width:              buttonColumn.width
-        anchors.topMargin:  _verticalMargin
-        anchors.top:        parent.top
-        anchors.bottom:     parent.bottom
-        anchors.leftMargin: _horizontalMargin
-        anchors.left:       parent.left
-        contentHeight:      buttonColumn.height + _verticalMargin
-        flickableDirection: Flickable.VerticalFlick
-        clip:               true
+    Item {
+        id:             buttonArea
+        anchors.left:   parent.left
+        anchors.top:    parent.top
+        anchors.bottom: parent.bottom
+        width:          _sidebarTargetWidth
 
-        ColumnLayout {
-            id:         buttonColumn
-            spacing:    ScreenTools.defaultFontPixelHeight / 4
+        QGCFlickable {
+            id:                 buttonList
+            width:              buttonColumn.width
+            anchors.topMargin:  _verticalMargin
+            anchors.top:        parent.top
+            anchors.bottom:     parent.bottom
+            anchors.leftMargin: _horizontalMargin
+            anchors.left:       parent.left
+            contentHeight:      buttonColumn.height + _verticalMargin
+            flickableDirection: Flickable.VerticalFlick
+            clip:               true
 
-            property real _maxButtonWidth: 0
+            Column {
+                id:         buttonColumn
+                width:      Math.max(_maxButtonWidth, settingsView._buttonColumnWidth)
+                spacing:    ScreenTools.defaultFontPixelHeight / 4
 
-            Repeater {
-                id:     buttonRepeater
-                model:  settingsPagesModel
+                property real _maxButtonWidth: 0
 
-                SettingsButton {
-                    Layout.fillWidth:   true
-                    text:               name
-                    icon.source:        iconUrl
-                    visible:            pageVisible()
+                Component.onCompleted: reflowWidths()
+                onWidthChanged: reflowWidths()
 
-                    onClicked: {
-                        if (mainWindow.allowViewSwitch()) {
-                            if (rightPanel.source !== url) {
-                                rightPanel.source = url
-                            }
-                            checked = true
-                        }
+                Connections {
+                    target:         QGroundControl.settingsManager.appSettings.appFontPointSize
+                    onValueChanged: buttonColumn.reflowWidths()
+                }
+
+                function reflowWidths() {
+                    buttonColumn._maxButtonWidth = settingsView._buttonColumnWidth
+                    for (var i = 0; i < children.length; i++) {
+                        buttonColumn._maxButtonWidth = Math.max(buttonColumn._maxButtonWidth, children[i].implicitWidth)
                     }
+                    for (var j = 0; j < children.length; j++) {
+                        children[j].width = buttonColumn._maxButtonWidth
+                    }
+                }
 
-                    Component.onCompleted: {
-                        if (globals.commingFromRIDIndicator) {
-                            _commingFromRIDSettings = true
-                        }
-                        if(_first) {
-                            _first = false
-                            checked = true
-                        }
-                        if (_commingFromRIDSettings) {
-                            checked = false
-                            _commingFromRIDSettings = false
-                            if (modelData.url == "qrc:/qml/QGroundControl/AppSettings/RemoteIDSettings.qml") {
+                Repeater {
+                    id:     buttonRepeater
+                    model:  settingsPagesModel
+
+                    SubMenuButton {
+                        autoExclusive:  true
+                        text:           name
+                        imageResource:  iconUrl
+                        visible:        pageVisible()
+
+                        onClicked: {
+                            if (mainWindow.allowViewSwitch()) {
+                                if (rightPanel.source !== url) {
+                                    rightPanel.source = url
+                                }
                                 checked = true
+                            }
+                        }
+
+                        Component.onCompleted: {
+                            if (globals.commingFromRIDIndicator) {
+                                _commingFromRIDSettings = true
+                            }
+                            if(_first) {
+                                _first = false
+                                checked = true
+                            }
+                            if (_commingFromRIDSettings) {
+                                checked = false
+                                _commingFromRIDSettings = false
+                                if (modelData.url == "qrc:/qml/QGroundControl/AppSettings/RemoteIDSettings.qml") {
+                                    checked = true
+                                }
                             }
                         }
                     }
                 }
             }
         }
-    }
 
-    Rectangle {
-        id:                     divider
-        anchors.topMargin:      _verticalMargin
-        anchors.bottomMargin:   _verticalMargin
-        anchors.leftMargin:     _horizontalMargin
-        anchors.left:           buttonList.right
-        anchors.top:            parent.top
-        anchors.bottom:         parent.bottom
-        width:                  1
-        color:                  qgcPal.windowShade
+        Rectangle {
+            id:                     divider
+            anchors.topMargin:      _verticalMargin
+            anchors.bottomMargin:   _verticalMargin
+            anchors.right:          parent.right
+            anchors.top:            parent.top
+            anchors.bottom:         parent.bottom
+            width:                  1
+            color:                  qgcPal.windowShade
+        }
     }
 
     //-- Panel Contents
@@ -140,7 +167,7 @@ Rectangle {
         anchors.rightMargin:    _horizontalMargin
         anchors.topMargin:      _verticalMargin
         anchors.bottomMargin:   _verticalMargin
-        anchors.left:           divider.right
+        anchors.left:           buttonArea.right
         anchors.right:          parent.right
         anchors.top:            parent.top
         anchors.bottom:         parent.bottom

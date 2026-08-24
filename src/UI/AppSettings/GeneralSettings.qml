@@ -29,6 +29,7 @@ SettingsPage {
     property Fact   _userBrandImageIndoor:      _brandImageSettings.userBrandImageIndoor
     property Fact   _userBrandImageOutdoor:     _brandImageSettings.userBrandImageOutdoor
     property Fact   _appSavePath:               _appSettings.savePath
+    property Fact   _panelWidthsLinked:         _appSettings.panelWidthsLinked
 
     SettingsGroupLayout {
         Layout.fillWidth:   true
@@ -259,6 +260,18 @@ SettingsPage {
                 _userBrandImageIndoor.rawValue = ""
                 _userBrandImageOutdoor.rawValue = ""
             }
+        }
+    }
+
+    SettingsGroupLayout {
+        Layout.fillWidth:   true
+        heading:            qsTr("Side Panels")
+        visible:            !ScreenTools.isMobile && _panelWidthsLinked.visible
+
+        FactCheckBoxSlider {
+            Layout.fillWidth:   true
+            text:               qsTr("대칭 폭 조절")
+            fact:               _panelWidthsLinked
         }
     }
 }

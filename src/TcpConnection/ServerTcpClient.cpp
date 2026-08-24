@@ -1,245 +1,222 @@
 #include "ServerTcpClient.h"
 
-#include <qjsondocument.h>
-#include <qdebug.h>
-#include <qabstractsocket.h>
+#include <QAbstractSocket>
+#include <QHostAddress>
 
-TcpClient::TcpClient(QObject *parent) : QObject(parent), reconnectTimer(nullptr)
+TcpClient::TcpClient(QObject *parent)
+    : QObject(parent)
 {
-    m_socket = new QTcpSocket(this);
     reconnectTimer = new QTimer(this);
-
-    connect(m_socket, &QTcpSocket::readyRead, this, &TcpClient::onReadyRead);
-    connect(m_socket, &QTcpSocket::connected, this, &TcpClient::onConnected);
-    connect(m_socket, &QTcpSocket::disconnected, this, &TcpClient::onDisconnected);
-
-    // 에러 발생 시 상태를 Disconnected로 변경하기 위해 연결
-    connect(m_socket, &QAbstractSocket::errorOccurred, this, &TcpClient::onErrorOccurred);
-
-    // 재연결 로직
     connect(reconnectTimer, &QTimer::timeout, this, &TcpClient::checkConnection);
-    reconnectTimer->start(3000);
-
+    reconnectTimer->start(m_reconnectIntervalMs);
 }
 
-void TcpClient::setStatus(ConnectionStatus newStatus) {
+void TcpClient::setAutoReconnect(bool enabled)
+{
+    m_autoReconnect = enabled;
+    if (!enabled && reconnectTimer) {
+        reconnectTimer->stop();
+    } else if (enabled && reconnectTimer && !reconnectTimer->isActive()) {
+        reconnectTimer->start(m_reconnectIntervalMs);
+    }
+}
+
+void TcpClient::setReconnectIntervalMs(int ms)
+{
+    const int clamped = qBound(500, ms, 60000);
+    if (m_reconnectIntervalMs == clamped) {
+        return;
+    }
+    m_reconnectIntervalMs = clamped;
+    if (reconnectTimer && reconnectTimer->isActive()) {
+        reconnectTimer->start(m_reconnectIntervalMs);
+    }
+}
+
+void TcpClient::setStatus(ConnectionStatus newStatus)
+{
     if (m_status != newStatus) {
         m_status = newStatus;
-        emit statusChanged(); // QML에 알림을 보냅니다.
+        emit statusChanged();
+    }
+}
+
+void TcpClient::bindSocketSignals(QTcpSocket *socket)
+{
+    if (!socket) {
+        return;
+    }
+    connect(socket, &QTcpSocket::readyRead, this, &TcpClient::onReadyRead);
+    connect(socket, &QTcpSocket::connected, this, &TcpClient::onConnected);
+    connect(socket, &QTcpSocket::disconnected, this, &TcpClient::onDisconnected);
+    connect(socket, &QAbstractSocket::errorOccurred, this, &TcpClient::onErrorOccurred);
+}
+
+void TcpClient::resetActiveSocket()
+{
+    if (!m_socket) {
+        return;
+    }
+    // 시그널 재진입 방지: 핸들러 안에서 abort/delete 하지 않도록 먼저 분리
+    m_socket->disconnect(this);
+    if (m_socket->state() != QAbstractSocket::UnconnectedState) {
+        m_socket->abort();
+    }
+    m_socket->deleteLater();
+    m_socket = nullptr;
+}
+
+void TcpClient::start(const QString &host, quint16 port, Mode mode)
+{
+    m_host = host;
+    m_port = port;
+    m_mode = mode;
+
+    disconnectFromServer();
+
+    if (m_mode == Mode::Server) {
+        setAutoReconnect(false);
+        if (!m_server) {
+            m_server = new QTcpServer(this);
+            connect(m_server, &QTcpServer::newConnection, this, &TcpClient::onNewConnection);
+        }
+
+        const QHostAddress addr = (host.isEmpty() || host == QLatin1String("0.0.0.0"))
+                                      ? QHostAddress::Any
+                                      : QHostAddress(host);
+
+        setStatus(Connecting);
+        if (!m_server->listen(addr, port)) {
+            setStatus(Disconnected);
+            return;
+        }
+        setStatus(Disconnected);
+        return;
+    }
+
+    setAutoReconnect(true);
+    if (m_server) {
+        m_server->close();
+    }
+
+    m_socket = new QTcpSocket(this);
+    bindSocketSignals(m_socket);
+
+    setStatus(Connecting);
+    m_socket->connectToHost(host, port);
+    if (m_socket->waitForConnected(3000)) {
+        setStatus(Connected);
+    } else {
+        setStatus(Disconnected);
     }
 }
 
 void TcpClient::connectToServer(const QString &host, quint16 port)
 {
-    // 1. 이미 연결 중이거나 연결된 경우 정리
-    if (m_socket->state() != QAbstractSocket::UnconnectedState) {
-        m_socket->abort(); // 기존 연결을 즉시 강제 종료
+    start(host, port, Mode::Client);
+}
+
+void TcpClient::onNewConnection()
+{
+    if (!m_server) {
+        return;
     }
 
-    // 2. 상태를 '연결 중(Connecting)'으로 먼저 변경 (QML에 노란색 표시)
-    setStatus(Connecting);
-    //qDebug() << "Attempting to connect to:" << host << ":" << port;
-
-    // 3. 연결 시도
-    m_socket->connectToHost(host, port);
-
-    // 4. 동기식 대기 (3초)
-    if (m_socket->waitForConnected(3000)) {
-        //qDebug() << "TCP Connection Success!";
-        setStatus(Connected); // 연결 성공 (QML에 초록색 표시)
+    QTcpSocket *incoming = m_server->nextPendingConnection();
+    if (!incoming) {
+        return;
     }
-    else {
-        //qDebug() << "TCP Connection Failed:" << m_socket->errorString();
-        setStatus(Disconnected); // 연결 실패 (QML에 빨간색 표시)
-    }
+
+    resetActiveSocket();
+    m_socket = incoming;
+    m_socket->setParent(this);
+    bindSocketSignals(m_socket);
+
+    setStatus(Connected);
+    emit connectionStatusChanged(true);
 }
 
 void TcpClient::onConnected()
 {
     emit connectionStatusChanged(true);
-    //qDebug() << "Connected to server!";
-    setStatus(Connected); // 연결 성공
+    setStatus(Connected);
 }
 
 void TcpClient::onDisconnected()
 {
+    setStatus(Disconnected);
+    // 소켓 핸들러 스택 위에서 링크 파괴가 일어나지 않도록 상태만 알림
     emit connectionStatusChanged(false);
-    //qDebug() << "Disconnected from server.";
-    setStatus(Disconnected); // 연결 끊김
+
+    if (m_mode == Mode::Server && m_socket) {
+        m_socket->disconnect(this);
+        m_socket->deleteLater();
+        m_socket = nullptr;
+    }
 }
 
-void TcpClient::onErrorOccurred(QAbstractSocket::SocketError error) {
-    setStatus(Disconnected); // 에러 발생 시 끊김으로 간주
+void TcpClient::onErrorOccurred(QAbstractSocket::SocketError error)
+{
+    Q_UNUSED(error);
+    if (m_mode == Mode::Client) {
+        setStatus(Disconnected);
+    }
 }
 
 void TcpClient::disconnectFromServer()
 {
-    m_socket->disconnectFromHost();
-}
-
-/*void TcpClient::onReadyRead()
-{
-    if (!m_socket) return;
-
-    m_rxBuffer.append(m_socket->readAll());
-    qDebug() << "[DEBUG] Current Buffer Content:" << m_rxBuffer;
-
-    while (true) {
-        // 1. 메시지의 시작점인 '{' 찾기
-        int start = m_rxBuffer.indexOf('{');
-        if (start < 0) {
-            m_rxBuffer.clear();
-            return;
-        }
-        if (start > 0) {
-            m_rxBuffer.remove(0, start);
-        }
-
-        // 2. JSON 한 개의 끝 '}' 위치 찾기
-        int depth = 0;
-        bool inString = false;
-        bool escape = false;
-        int end = -1;
-        int nextStartCandidate = -1; // [추가] 깨진 데이터 감지용
-
-        for (int i = 0; i < m_rxBuffer.size(); ++i) {
-            char c = m_rxBuffer[i];
-
-            if (escape) { escape = false; continue; }
-            if (c == '\\') { if (inString) escape = true; continue; }
-            if (c == '\"') { inString = !inString; continue; }
-
-            if (!inString) {
-                if (c == '{') {
-                    depth++;
-                    // [추가] 두 번째 '{'가 나타났는데 아직 첫 번째가 안 끝났다면?
-                    if (depth > 1 && nextStartCandidate < 0) {
-                        nextStartCandidate = i;
-                    }
-                }
-                else if (c == '}') {
-                    depth--;
-                    if (depth == 0) {
-                        end = i;
-                        break;
-                    }
-                }
-            }
-        }
-
-        // 3. 예외 처리: 아직 끝('}')을 못 찾았는데 다음 시작('{')이 이미 들어온 경우
-        if (end < 0 && nextStartCandidate > 0) {
-            qDebug() << "[WARNING] Fragmented data detected. Removing corrupt segment.";
-            m_rxBuffer.remove(0, nextStartCandidate); // 깨진 앞부분을 버리고 새 시작점으로 이동
-            continue; // 다시 while 루프 처음으로 가서 파싱 시도
-        }
-
-        // 4. 아직 완전한 JSON이 아니면 다음 데이터 대기
-        if (end < 0) return;
-
-        // 5. 정상적인 한 덩어리 추출 및 파싱
-        QByteArray one = m_rxBuffer.left(end + 1);
-        m_rxBuffer.remove(0, end + 1);
-
-        QJsonParseError err;
-        QJsonDocument doc = QJsonDocument::fromJson(one.trimmed(), &err);
-        if (err.error == QJsonParseError::NoError) {
-            emit jsonReceived(doc);
-        }
-        else {
-            qDebug() << "JSON parse error:" << err.errorString();
-        }
+    setAutoReconnect(false);
+    if (m_server && m_server->isListening()) {
+        m_server->close();
     }
-}
-*/
-void TcpClient::onReadyRead()
-{
-    if (!m_socket) return;
-    m_rxBuffer.append(m_socket->readAll());
-
-    while (true) {
-        // 1. 메시지 시작점 '{' 찾기
-        int start = m_rxBuffer.indexOf('{');
-        if (start < 0) {
-            m_rxBuffer.clear();
-            return;
-        }
-        if (start > 0) {
-            m_rxBuffer.remove(0, start);
-        }
-
-        // 2. JSON 한 덩어리의 끝('}') 찾기
-        int depth = 0;
-        bool inString = false;
-        bool escape = false;
-        int end = -1;
-
-        for (int i = 0; i < m_rxBuffer.size(); ++i) {
-            char c = m_rxBuffer[i];
-            if (escape) { escape = false; continue; }
-            if (c == '\\') { if (inString) escape = true; continue; }
-            if (c == '\"') { inString = !inString; continue; }
-
-            if (!inString) {
-                if (c == '{') depth++;
-                else if (c == '}') {
-                    depth--;
-                    if (depth == 0) { end = i; break; }
-                }
-            }
-        }
-
-        // 3. [핵심 수정] 끝을 못 찾았을 때 (데이터가 덜 왔거나 파싱이 꼬였을 때)
-        if (end < 0) {
-            // 현재 파싱 상태(inString 등)와 상관없이, 
-            // 버퍼 뒤쪽에 새로운 메시지 시작처럼 보이는 '{"' 가 있는지 강제로 찾아봅니다.
-            int nextStart = m_rxBuffer.indexOf("{\"", 1);
-
-            if (nextStart > 0) {
-                // 뒤에 새 메시지가 이미 와 있는데 아직 끝을 못 찾았다면, 현재 앞부분은 깨진 것입니다.
-                qDebug() << "[WARNING] Stuck detected. Clearing corrupt segment.";
-                m_rxBuffer.remove(0, nextStart);
-                continue; // 다시 처음부터 파싱 시도
-            }
-            return; // 정말로 데이터가 덜 온 것이라면 다음 신호를 기다립니다.
-        }
-
-        // 4. 정상적인 JSON 추출 및 파싱
-        QByteArray one = m_rxBuffer.left(end + 1);
-        m_rxBuffer.remove(0, end + 1);
-
-        QJsonParseError err;
-        QJsonDocument doc = QJsonDocument::fromJson(one.trimmed(), &err);
-        if (err.error == QJsonParseError::NoError) {
-            emit jsonReceived(doc);
-        }
-    }
+    resetActiveSocket();
+    setStatus(Disconnected);
 }
 
-
-
-void TcpClient::sendJson(const QJsonDocument& doc)
+void TcpClient::dropActiveConnection()
 {
-    if (!m_socket || m_socket->state() != QAbstractSocket::ConnectedState) {
-        //qDebug() << "sendJson failed: socket not connected";
+    if (!m_socket) {
         return;
     }
+    // resetActiveSocket()이 시그널을 먼저 끊으므로 onDisconnected()가 오지 않는다. 상태만 직접 알린다.
+    resetActiveSocket();
+    setStatus(Disconnected);
+    emit connectionStatusChanged(false);
+}
 
-    QByteArray payload = doc.toJson(QJsonDocument::Compact);
-    payload.append('\n');
+void TcpClient::onReadyRead()
+{
+    if (!m_socket) {
+        return;
+    }
+    const QByteArray chunk = m_socket->readAll();
+    if (!chunk.isEmpty()) {
+        emit dataReceived(chunk);
+    }
+}
 
-    // 서버가 메시지 구분자를 요구하면 필요 시만 사용
-    // payload.append('\n');
-
-    m_socket->write(payload);
+void TcpClient::sendData(const QByteArray &data)
+{
+    if (!m_socket || m_socket->state() != QAbstractSocket::ConnectedState) {
+        return;
+    }
+    if (data.isEmpty()) {
+        return;
+    }
+    m_socket->write(data);
     m_socket->flush();
 }
 
-// 재연결 로직 구현
-void TcpClient::checkConnection() {
-    // 소켓이 연결되어 있지 않은 상태라면 다시 연결을 시도합니다.
+void TcpClient::checkConnection()
+{
+    if (m_mode != Mode::Client || !m_autoReconnect) {
+        return;
+    }
+    if (!m_socket) {
+        m_socket = new QTcpSocket(this);
+        bindSocketSignals(m_socket);
+    }
     if (m_socket->state() == QAbstractSocket::UnconnectedState) {
-        //qDebug() << "서버 연결 끊김. 재접속 시도 중...";
-        m_socket->connectToHost("127.0.0.1", 1004);
+        m_socket->connectToHost(m_host, m_port);
     }
 }

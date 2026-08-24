@@ -47,9 +47,9 @@ DECLARE_SETTINGSFACT_NO_FUNC(AutoConnectSettings, autoConnectPixhawk)
 {
     if (!_autoConnectPixhawkFact) {
         _autoConnectPixhawkFact = _createSettingsFact(autoConnectPixhawkName);
-#ifdef Q_OS_IOS
+        // USB Pixhawk는 LinkManager 시리얼 자동 연결을 쓰지 않고 PortScanner 수동 연결만 사용
         _autoConnectPixhawkFact->setVisible(false);
-#endif
+        _autoConnectPixhawkFact->setRawValue(false);
     }
     return _autoConnectPixhawkFact;
 }

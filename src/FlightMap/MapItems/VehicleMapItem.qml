@@ -120,7 +120,14 @@ MapQuickItem {
 
         Image {
             id:                 vehicleIcon
-            source:             _adsbVehicle ? (alert ? "/qmlimages/AlertAircraft.svg" : "/qmlimages/AwarenessAircraft.svg") : vehicle.vehicleImageOpaque
+            source: {
+                if (_adsbVehicle) return alert ? "/qmlimages/AlertAircraft.svg" : "/qmlimages/AwarenessAircraft.svg"
+                if (!vehicle) return ""
+                var spd = vehicle.groundSpeed.value
+                if (spd >= 5.0)  return "/qmlimages/vehicleArrowOpaque_2.png"
+                if (spd > 0)     return "/qmlimages/vehicleArrowOpaque_1.png"
+                return vehicle.vehicleImageOpaque
+            }
             mipmap:             true
             width:              _root.size
             sourceSize.width:   _root.size

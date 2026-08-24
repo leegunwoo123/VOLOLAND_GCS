@@ -36,6 +36,35 @@ Item {
         window.height = Math.min(150 * Screen.pixelDensity, Screen.height);
     }
 
+    function _desktopSafeMargin() {
+        return ScreenTools.defaultFontPixelHeight * 4
+    }
+
+    function _maxSafeDesktopWidth() {
+        return Math.max(window.minimumWidth, Screen.width - (_desktopSafeMargin() * 2))
+    }
+
+    function _maxSafeDesktopHeight() {
+        return Math.max(window.minimumHeight, Screen.height - (_desktopSafeMargin() * 2))
+    }
+
+    function _clampDesktopWindowToScreen() {
+        var maxWidth = _maxSafeDesktopWidth()
+        var maxHeight = _maxSafeDesktopHeight()
+        window.width = Math.min(window.width, maxWidth)
+        window.height = Math.min(window.height, maxHeight)
+        window.x = Math.max(0, Math.min(window.x, Screen.width - window.width))
+        window.y = Math.max(0, Math.min(window.y, Screen.height - window.height))
+    }
+
+    function _setSafeDesktopWindowSize() {
+        window.width = _maxSafeDesktopWidth()
+        window.height = _maxSafeDesktopHeight()
+        window.x = Math.max(0, Math.round((Screen.width - window.width) / 2))
+        window.y = Math.max(0, Math.round((Screen.height - window.height) / 2))
+        window.visibility = Window.Windowed
+    }
+
     Component.onCompleted: {
         if (ScreenTools.fakeMobile) {
             window.width = ScreenTools.screenWidth
@@ -44,16 +73,9 @@ Item {
             window.showFullScreen();
         } else if (QGroundControl.corePlugin.options.enableSaveMainWindowPosition) {
             window.minimumWidth = Math.min(ScreenTools.defaultFontPixelWidth * 100, Screen.width)
-            window.minimumHeight = Math.min(ScreenTools.defaultFontPixelWidth * 50, Screen.height)
-            if (s.width && s.height) {
-                window.x = s.x;
-                window.y = s.y;
-                window.width = s.width;
-                window.height = s.height;
-                window.visibility = s.visibility;
-            } else {
-                _setDefaultDesktopWindowSize()
-            }
+            window.minimumHeight = Math.min(ScreenTools.defaultFontPixelWidth * 50,
+                                            Screen.height - (ScreenTools.defaultFontPixelHeight * 8))
+            _setSafeDesktopWindowSize()
         } else {
             _setDefaultDesktopWindowSize()
         }

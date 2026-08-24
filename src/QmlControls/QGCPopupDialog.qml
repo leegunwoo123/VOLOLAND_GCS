@@ -192,7 +192,7 @@ Popup {
     function disableAcceptButton() {
         acceptButton.enabled = false
     }
-
+/*
     Rectangle {
         x:              mainLayout.x - _contentMargin
         y:              mainLayout.y - _contentMargin
@@ -202,7 +202,17 @@ Popup {
         radius:         root.padding / 2
         border.width:   1
         border.color:   _qgcPal.windowShadeLight
-    }
+    }*/
+    Rectangle {
+    x:              mainLayout.x - _contentMargin
+    y:              mainLayout.y - _contentMargin
+    width:          mainLayout.width + _contentMargin * 2
+    height:         mainLayout.height + _contentMargin * 2
+    color:          "#1C1C1C"    // 어두운 배경
+    radius:         12           // 더 둥근 모서리
+    border.width:   2            // 더 뚜렷한 테두리
+    border.color:   "#006C36"    // 자사 초록색 강조
+}
 
     ColumnLayout {
         id:                 mainLayout

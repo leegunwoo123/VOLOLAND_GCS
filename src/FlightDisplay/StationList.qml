@@ -8,7 +8,7 @@ import QGroundControl.ScreenTools
 Item {
     id: root
 
-    implicitWidth: stationBackground.implicitWidth
+    implicitWidth:  mainWindow.sidebarTargetWidth
     implicitHeight: stationBackground.implicitHeight
 
     property alias selectedStation: stationBackground.selectedStation
@@ -24,14 +24,12 @@ Item {
     function initializeData() {
         var rawListData = [
             { "depth": 0, "nodeType": "company",           "groupName": "VoloLand",                      "stationName": "" },
-            { "depth": 1, "nodeType": "parent department", "groupName": "Future Air Mobility Lab",      "stationName": "" },
-            { "depth": 2, "nodeType": "department",        "groupName": "Autonomous Ground System Group", "stationName": "" },
+            { "depth": 1, "nodeType": "parent department", "groupName": "미래항공모빌리티연구소",      "stationName": "" },
+            { "depth": 2, "nodeType": "department",        "groupName": "볼로 무인기 & 지상플랫폼 그룹", "stationName": "" },
             { "depth": 3, "nodeType": "station",           "groupName": "",                              "stationName": "VLS-770C" },
-            { "depth": 3, "nodeType": "station",           "groupName": "",                              "stationName": "VLS-1300C" },
-            { "depth": 3, "nodeType": "station",           "groupName": "",                              "stationName": "VLS-450S" },
-            { "depth": 2, "nodeType": "department",        "groupName": "Maintenance Support Group",    "stationName": "" },
+            { "depth": 2, "nodeType": "department",        "groupName": "볼로 자율비행플랫폼 그룹",    "stationName": "" },
             { "depth": 3, "nodeType": "station",           "groupName": "",                              "stationName": "VLS-400C" },
-            { "depth": 0, "nodeType": "company",           "groupName": "Regional User",                 "stationName": "" },
+            { "depth": 0, "nodeType": "company",           "groupName": "개인사용자",                 "stationName": "" },
             { "depth": 3, "nodeType": "station",           "groupName": "",                              "stationName": "THEO-3" }
         ];
 
@@ -49,7 +47,7 @@ Item {
 
     Component.onCompleted: {
         initializeData();
-        updateStationStatus({"stationName": "Station-Alpha", "status": "ONLINE"});
+        updateStationStatus({"stationName": "VLS-770C", "status": "ONLINE"});
     }
 
     function updateStationStatus(hb) {
@@ -133,7 +131,6 @@ Item {
         id: stationBackground
         width: parent.width
         height: parent.height
-        implicitWidth: 350 
         color: "#1a1a1a"
 
         property string selectedStation: ""
@@ -198,7 +195,7 @@ Item {
                     Layout.preferredHeight: 30
                     leftPadding: 10
                     color: "white"
-                    font.pixelSize: 12
+                    font.pointSize: ScreenTools.smallFontPointSize
                     background: Rectangle {
                         color: "#2a2a2a"
                         border.color: stationSearchBox.activeFocus ? "#00BFFF" : "#444"
@@ -232,12 +229,19 @@ Item {
                         id: listView
                         width: viewContainer.availableWidth
                         model: stationModel
-                        spacing: 2
+                        // DroneList와 동일: ListView spacing 0, 행 간격은 delegate 높이의 _listRowSpacing 에 포함
+                        spacing: 0
 
                         delegate: Item {
                             id: delegateItem
                             width: listView.width
-                            height: isVisible ? (nodeType === "station" ? 60 : 40) : 0
+                            readonly property int _rowBodyHeight: nodeType === "station" ? 60 : 40
+                            readonly property int _listRowSpacing: 2
+                            // DroneList와 동일: depth 들여쓰기 (배수 2→1로 단계 간 간격 완화)
+                            readonly property int _depthIndentStep: Math.round(ScreenTools.defaultFontPixelWidth * 1)
+                            readonly property int _depthIndent: Math.max(0, Number(model.depth)) * _depthIndentStep
+                            readonly property int _rowDepth: Math.max(0, Number(model.depth))
+                            height: isVisible ? (_rowBodyHeight + _listRowSpacing) : 0
                             visible: isVisible
                             clip: true
 
@@ -245,12 +249,26 @@ Item {
 
                             Rectangle {
                                 id: bgRect
-                                anchors.fill: parent
-                                anchors.margins: 2
+                                anchors.left: parent.left
+                                anchors.right: parent.right
+                                anchors.top: parent.top
+                                anchors.leftMargin: 2 + delegateItem._depthIndent
+                                anchors.rightMargin: 2
+                                anchors.topMargin: 2
+                                height: _rowBodyHeight - 4
                                 z: 0
-                                color: nodeType === "company"
-                                       ? "#252525"
-                                       : (nodeType.includes("department") ? "#1e1e1e" : "#151515")
+                                color: {
+                                    if (nodeType === "station")
+                                        return "#151515"
+                                    var d = delegateItem._rowDepth
+                                    if (d === 0)
+                                        return "#252525"
+                                    if (d === 1)
+                                        return "#2f2f3c"
+                                    if (d === 2)
+                                        return "#1e2822"
+                                    return "#1a1f24"
+                                }
                                 border.color: (nodeType === "station" && stationBackground.selectedStation === stationName) ? "#00BFFF" : "#333"
                                 border.width: (nodeType === "station" && stationBackground.selectedStation === stationName) ? 3 : 1
                                 radius: 4
@@ -260,7 +278,9 @@ Item {
                                 id: contentLayout
                                 anchors.fill: bgRect
                                 anchors.leftMargin: 10
-                                anchors.rightMargin: 2
+                                // 스크롤 유무와 무관하게 세로 스크롤바 폭만큼 우측 여백 확보 (DroneList와 동일)
+                                anchors.rightMargin: 2 + ((viewContainer.ScrollBar.vertical && viewContainer.ScrollBar.vertical.width > 0)
+                                                          ? viewContainer.ScrollBar.vertical.width : 12)
                                 spacing: 10
                                 z: 1
 
@@ -269,7 +289,7 @@ Item {
                                     Layout.alignment: Qt.AlignVCenter
                                     Layout.preferredWidth: 15
                                     color: "white"
-                                    font.pixelSize: 12
+                                    font.pointSize: ScreenTools.smallFontPointSize
                                     visible: nodeType !== "station"
                                 }
 
@@ -281,18 +301,38 @@ Item {
 
                                 Text {
                                     id: iconText
-                                    font.pixelSize: 16
-                                    text: nodeType === "station" ? "📡" : (nodeType === "company" ? "🏢" : "📂")
+                                    font.pointSize: ScreenTools.mediumFontPointSize
+                                    text: {
+                                        if (nodeType === "station")
+                                            return "📡"
+                                        var d = delegateItem._rowDepth
+                                        if (d === 0)
+                                            return "🏢"
+                                        if (d === 1)
+                                            return "🏬"
+                                        if (d === 2)
+                                            return "📂"
+                                        return "📋"
+                                    }
                                     Layout.preferredWidth: 25
                                 }
 
                                 Text {
                                     text: nodeType === "station" ? stationName : groupName
-                                    color: nodeType === "company"
-                                           ? "#00BFFF"
-                                           : (nodeType.includes("department") ? "#FFD700" : "white")
+                                    color: {
+                                        if (nodeType === "station")
+                                            return "white"
+                                        var d = delegateItem._rowDepth
+                                        if (d === 0)
+                                            return "#00BFFF"
+                                        if (d === 1)
+                                            return "#9CDCFE"
+                                        if (d === 2)
+                                            return "#FFD700"
+                                        return "#E0C080"
+                                    }
                                     font.bold: nodeType !== "station"
-                                    font.pixelSize: 14
+                                    font.pointSize: ScreenTools.defaultFontPointSize
                                     elide: Text.ElideRight
                                     Layout.fillWidth: true
                                     verticalAlignment: Text.AlignVCenter
@@ -301,11 +341,13 @@ Item {
                                 RowLayout {
                                     visible: nodeType === "station"
                                     spacing: 15
+                                    // RowLayout은 Layout.fillWidth 기본 true → false로 명시해야 hug(우측정렬 밀착). DroneList와 동일
+                                    Layout.fillWidth: false
                                     Layout.alignment: Qt.AlignRight | Qt.AlignVCenter
 
                                     Text {
                                         text: status === "ONLINE" ? "📶" : "⚠️"
-                                        font.pixelSize: 14
+                                        font.pointSize: ScreenTools.defaultFontPointSize
                                         Layout.preferredWidth: 20
                                         Layout.alignment: Qt.AlignVCenter
                                         color: status === "ONLINE" ? "#44ff44" : "#ff4444"
@@ -314,13 +356,14 @@ Item {
                                     Text {
                                         text: status
                                         color: status === "ONLINE" ? "#44ff44" : "#ff4444"
-                                        font.pixelSize: 11
+                                        font.pointSize: ScreenTools.smallFontPointSize
                                     }
                                 }
                             }
 
                             MouseArea {
                                 anchors.fill: parent
+                                z: 2
                                 onClicked: {
                                     if (nodeType === "station") {
                                         stationBackground.selectedStation = (stationBackground.selectedStation === stationName) ? "" : stationName

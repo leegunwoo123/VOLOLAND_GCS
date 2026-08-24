@@ -2,55 +2,70 @@
 #define TCPCLIENT_H
 
 #include <QObject>
+#include <QTcpServer>
 #include <QTcpSocket>
-#include <QJsonDocument>
-#include <QJsonObject>
-#include <qtimer.h>
+#include <QTimer>
 
 class TcpClient : public QObject
 {
     Q_OBJECT
-    // 상태가 변하면 statusChanged 신호가 발생하여 QML UI를 자동으로 갱신합니다.
     Q_PROPERTY(int status READ status NOTIFY statusChanged)
 public:
-
-    Q_INVOKABLE void sendJson(const QJsonDocument& doc);
-
-    // QML 색상 로직에 맞춘 상태 정의 (0:연결, 1:연결중, 2:끊김)
     enum ConnectionStatus {
         Connected = 0,
         Connecting = 1,
         Disconnected = 2
     };
 
+    enum class Mode {
+        Client,
+        Server
+    };
+
     explicit TcpClient(QObject *parent = nullptr);
     int status() const { return m_status; }
 
-    // 서버 연결 함수
-    void connectToServer(const QString &host, quint16 port);
+    /// Client: connect to host:port. Server: bind host (0.0.0.0 가능) and listen port.
+    void start(const QString &host, quint16 port, Mode mode = Mode::Client);
+    void connectToServer(const QString &host, quint16 port); // client shortcut
     void disconnectFromServer();
 
+    /// 현재 연결만 끊는다. disconnectFromServer()와 달리 서버 리스닝과 자동 재연결 설정을 유지하므로
+    /// 상위에서 복구 가능한 오류로 판단했을 때 재시도 여지를 남길 수 있다.
+    void dropActiveConnection();
+
+    void sendData(const QByteArray &data);
+    void setAutoReconnect(bool enabled); // client mode only
+    void setReconnectIntervalMs(int ms); // client mode only
+
 signals:
-    // JSON 데이터가 준비되었을 때 DroneManager에게 보낼 시그널
-    void jsonReceived(const QJsonDocument &jsonDoc);
+    void dataReceived(const QByteArray &data);
     void connectionStatusChanged(bool connected);
-    void statusChanged(); // 상태 변화를 알리는 신호
+    void statusChanged();
 
 private slots:
-    // 소켓에 데이터가 들어왔을 때 호출될 슬롯
     void onReadyRead();
     void onConnected();
     void onDisconnected();
     void onErrorOccurred(QAbstractSocket::SocketError error);
+    void onNewConnection();
+    void checkConnection();
 
 private:
-    QTcpSocket *m_socket;
-    QByteArray m_rxBuffer;
-    int m_status = Disconnected; // 초기 상태는 연결 끊김
     void setStatus(ConnectionStatus newStatus);
-    // 서버 연결 상태 확인
-    QTimer* reconnectTimer;
-    void checkConnection();
+    void bindSocketSignals(QTcpSocket *socket);
+    void resetActiveSocket();
+
+    QTcpSocket *m_socket = nullptr;
+    QTcpServer *m_server = nullptr;
+    QTimer *reconnectTimer = nullptr;
+
+    int m_status = Disconnected;
+    Mode m_mode = Mode::Client;
+    QString m_host = QStringLiteral("127.0.0.1");
+    quint16 m_port = 1004;
+    bool m_autoReconnect = true;
+    int m_reconnectIntervalMs = 3000;
 };
 
 #endif

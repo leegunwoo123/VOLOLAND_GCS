@@ -65,10 +65,8 @@ public:
     void setFailOnError(bool v)          { if (_failOnError != v)     { _failOnError = v;     emit changed(); } }
     void setMaxPayloadBytes(int v)       { if (_maxPayloadBytes != v) { _maxPayloadBytes = v; emit changed(); } }
 
-    /// 현재 활성 crypto.ini에서 값을 다시 읽는다.
     Q_INVOKABLE void reload();
 
-    /// 편집한 값을 crypto.ini에 기록한다.
     /// tngCore: 기존처럼 alg/mode 등만 기록하고 key_hex/iv_hex는 보존.
     /// MCM-L: mcm_alg / mcm_key_hex / mcm_iv_hex만 기록. TNG key_hex/iv_hex/alg는 건드리지 않는다.
     Q_INVOKABLE bool save();

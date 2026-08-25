@@ -57,7 +57,7 @@ struct TngCryptoConfig
     QString keystorePath; // empty => tngCore default
     QString libDir = QStringLiteral("."); // tngcore.dll / mcm-l dll / KCMVP libs
 
-    bool enabled = true; // 암호화 활성화. false => 평문 TCP 통과 (테스트용)
+    bool enabled = true; // false => 평문 TCP 통과 (테스트용)
 
     Provider provider = Provider::TngCore;
 
@@ -114,9 +114,7 @@ struct TngCryptoConfig
     /// 각 폴더에서 구 파일명(tng_crypto.ini)이 발견되면 crypto.ini로 옮긴 뒤 사용한다.
     static QString resolveIniPath();
 
-    /// iniPath가 비어 있으면 QGC 설정 폴더(QSettings)/crypto.ini 사용.
-    /// 설정 폴더에 없으면 applicationDirPath()/crypto.ini 로 하위호환 fallback,
-    /// 그것도 없으면 설정 폴더에 기본 템플릿을 생성한 뒤 로드.
+    /// iniPath 가 비어 있으면 resolveIniPath() 규칙을 따르고, 파일이 없으면 기본 템플릿을 만든 뒤 로드한다.
     static bool load(const QString &iniPath, TngCryptoConfig &out, QString *error = nullptr);
 
     /// tngcore 코어 identity(lib_dir / sys_unique / package_id / keystore_path)는 프로세스 전역이라

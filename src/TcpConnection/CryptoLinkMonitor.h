@@ -4,9 +4,6 @@
 #include <QtCore/QString>
 #include <QtCore/QVariantList>
 
-/// 암호화 링크(EncryptedTcpPipe)의 오류 이력과 수신 통계를 모아 QML에 노출한다.
-/// 오류마다 모달 다이얼로그를 띄우는 대신 툴바 아이콘 + 목록 팝업으로 확인시키는 것이 목적이며,
-/// 차단/재시도 정책은 EncryptedTcpPipe 가 결정하고 그 결과만 여기에 기록된다.
 class CryptoLinkMonitor : public QObject
 {
     Q_OBJECT
@@ -39,7 +36,6 @@ public:
     Q_INVOKABLE void clear();
     Q_INVOKABLE void markAllRead();
 
-    /// 임계 초과로 중지된 파이프에 재시작을 요청한다. EncryptedTcpPipe 가 resumeRequested 를 구독한다.
     Q_INVOKABLE void requestResume();
 
 public slots:
@@ -53,14 +49,13 @@ signals:
     void resumeRequested();
 
 private:
-    /// 같은 오류가 초당 수십 건 반복돼도 QML 바인딩이 매번 깨지 않도록 통지를 묶어서 낸다.
     void _scheduleNotify();
     void _notifyNow();
 
     static constexpr int kMaxEntries  = 200;
     static constexpr int kNotifyDelayMs = 400;
 
-    QVariantList _entries;          // [{ time, level, levelText, source, message, count }, ...] 최신이 앞
+    QVariantList _entries;
     int  _unreadCount      = 0;
     int  _worstUnreadLevel = -1;
     bool _suspended        = false;

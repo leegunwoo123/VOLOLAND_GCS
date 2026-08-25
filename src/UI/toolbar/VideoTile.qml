@@ -106,7 +106,6 @@ Rectangle {
     }
 
     /// 타일 rtpTransport로 전송 옵션을 적용한다(기존 쿼리 값도 덮어씀).
-    /// crypto on → tcp, crypto off → ini/udp 등 일반 RTSP 전송.
     function _withRtpTransport(url, transport) {
         var source = _stripRtpTransport(url)
         if (source.indexOf("rtsp://") !== 0)

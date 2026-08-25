@@ -61,7 +61,6 @@ void CryptoLinkMonitor::reportEvent(int level, const QString &source, const QStr
 
     const int clamped = qBound(static_cast<int>(Info), level, static_cast<int>(Error));
 
-    // 같은 오류가 초당 수십 건 반복되는 상황이 정상이므로, 직전 항목과 동일하면 카운트만 올린다.
     if (!_entries.isEmpty()) {
         QVariantMap head = _entries.first().toMap();
         if (head.value(QStringLiteral("level")).toInt() == clamped

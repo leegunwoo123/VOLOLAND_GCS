@@ -90,7 +90,6 @@ EncryptedMavlinkLink::EncryptedMavlinkLink(SharedLinkConfigurationPtr &config, Q
     connect(&_pipe, &EncryptedTcpPipe::connected, this, &EncryptedMavlinkLink::_onPipeConnected);
     connect(&_pipe, &EncryptedTcpPipe::disconnected, this, &EncryptedMavlinkLink::_onPipeDisconnected);
     connect(&_pipe, &EncryptedTcpPipe::plainReceived, this, &EncryptedMavlinkLink::_onPlainReceived);
-    // 개별 오류는 CryptoLinkMonitor(툴바 알림)로만 모으고, 링크가 실제로 중지된 경우에만 QGC 오류를 올린다.
     connect(&_pipe, &EncryptedTcpPipe::suspended, this, &EncryptedMavlinkLink::_onPipeSuspended);
 }
 
@@ -115,7 +114,6 @@ bool EncryptedMavlinkLink::_connect()
         return false;
     }
 
-    // TCP 접속 정보는 링크 설정(Comm Links UI)에서 주입. ini의 [crypto]만 사용.
     if (_cfg) {
         cryptoCfg.host = _cfg->host();
         cryptoCfg.port = _cfg->port();
@@ -129,7 +127,6 @@ bool EncryptedMavlinkLink::_connect()
         return false;
     }
 
-    // TCP connect는 동기일 수 있음. 이미 세션이 열렸으면 connected 처리.
     if (_pipe.isConnected()) {
         _onPipeConnected();
     }
@@ -140,7 +137,6 @@ void EncryptedMavlinkLink::disconnect()
 {
     _connected = false;
     _pipe.stop();
-    // LinkManager 수동 disconnect 경로
     emit disconnected();
 }
 
@@ -156,9 +152,6 @@ void EncryptedMavlinkLink::_onPipeDisconnected()
         return;
     }
     _connected = false;
-
-    // LinkManager::disconnected 를 보내지 않는다.
-    // 보내면 링크가 제거되어 TcpClient 재연결이 불가능해진다.
 }
 
 void EncryptedMavlinkLink::_onPipeConnected()

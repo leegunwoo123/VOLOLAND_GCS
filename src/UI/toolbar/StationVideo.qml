@@ -17,16 +17,9 @@ VideoTile {
     fallbackUrl: (typeof QGroundControl !== "undefined" && QGroundControl.videoEndpointSettings)
         ? QGroundControl.videoEndpointSettings.stationUrl
         : "rtsp://127.0.0.1:8554/live"
-    rtpTransport: {
-        if (typeof QGroundControl === "undefined")
-            return "udp"
-        if (QGroundControl.videoCryptoSettings && QGroundControl.videoCryptoSettings.enabled)
-            return "tcp"
-        return QGroundControl.videoEndpointSettings
-            ? QGroundControl.videoEndpointSettings.stationRtpTransport
-            : "udp"
-    }
-    // 암호 on/off·일반/고속 모두 AppSettings > Video Crypto SSoT.
+    rtpTransport: (typeof QGroundControl !== "undefined" && QGroundControl.videoEndpointSettings)
+        ? QGroundControl.videoEndpointSettings.stationRtpTransport
+        : "udp"
     cryptoEnabled: (typeof QGroundControl !== "undefined" && QGroundControl.videoCryptoSettings)
         ? QGroundControl.videoCryptoSettings.enabled
         : false

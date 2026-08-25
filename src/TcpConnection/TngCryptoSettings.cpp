@@ -25,7 +25,6 @@ bool iniToBool(const QVariant &v, bool defaultValue)
     return defaultValue;
 }
 
-/// 콤보 후보 중 하나로 정규화. 매칭 실패 시 기본값 반환.
 QString normalize(const QString &value, const QStringList &allowed, const QString &defaultValue)
 {
     for (const QString &a : allowed) {

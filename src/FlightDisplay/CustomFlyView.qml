@@ -228,7 +228,7 @@ RowLayout {
     readonly property bool _videoCryptoEnabled: (typeof QGroundControl !== "undefined" && QGroundControl.videoCryptoSettings)
         ? QGroundControl.videoCryptoSettings.enabled
         : false
-    // transport는 DroneVideo.rtpTransport가 적용(암호 off=일반 RTSP/udp, on=tcp).
+    // transport는 DroneVideo.rtpTransport(ini drone_rtp_transport)가 적용.
     readonly property string _effectiveMainVideoRtspUrl: root._videoCfg
         ? root._videoCfg.droneUrl
         : root._mainVideoRtspUrl
@@ -248,7 +248,7 @@ RowLayout {
     ]
     /// 선택된 스테이션 장비 인덱스 (0-based). -1이면 미선택.
     property int selectedStationEquipmentIndex: 0
-    // transport는 StationVideo.rtpTransport가 적용(암호 off=일반 RTSP/udp, on=tcp).
+    // transport는 StationVideo.rtpTransport(ini station_rtp_transport)가 적용.
     readonly property string _effectiveStationVideoRtspUrl: root._videoCfg
         ? root._videoCfg.stationUrl
         : root._stationMainVideoRtspUrl

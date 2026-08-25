@@ -73,6 +73,9 @@ private:
     quint64 _applyToken = 0;
     int _statusCode = 0;
     QString _statusMessage;
+    /// 연속 실패 횟수. 세션이 kSessionStableMs 이상 살아 있었으면 0으로 되돌린다.
+    int _reconnectAttempts = 0;
+    qint64 _sessionStartMs = 0;
 
 #ifdef QGC_GST_STREAMING
     VideoReceiver *_receiver = nullptr;

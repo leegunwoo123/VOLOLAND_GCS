@@ -250,7 +250,6 @@ QString TngCryptoConfig::resolvedMcmDllPath() const
 
 QString TngCryptoConfig::defaultLeaKeyHex()
 {
-    // C:/Users/user/Desktop/군 개발 암호모듈 경량화 버전/key/Lea256Key.txt
     return QStringLiteral("7D1B7A0110019712056CF18DCDF79E02118A26A8B6204444F68E246F8E1967A0");
 }
 
@@ -272,7 +271,7 @@ QString TngCryptoConfig::defaultKeyHexForAlg(int alg)
 bool TngCryptoConfig::isValid() const
 {
     if (!enabled) {
-        return true; // 평문 통과: 암호 파라미터 검증 불필요
+        return true;
     }
 
     const int keyLen = expectedKeyBytes(alg);
@@ -329,7 +328,6 @@ QString TngCryptoConfig::resolveIniPath()
         return migratedExePath;
     }
 
-    // 둘 다 없으면 설정 폴더 경로(기본 생성 대상)를 반환.
     return settingsPath;
 }
 

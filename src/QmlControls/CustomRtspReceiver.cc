@@ -6,18 +6,26 @@
  ****************************************************************************/
 
 #include "CustomRtspReceiver.h"
-#include "CryptoLinkMonitor.h"
 #include "EncryptedRtspClient.h"
 #include "QGCCorePlugin.h"
 #include "QGCLogging.h"
 #include "QGCLoggingCategory.h"
 #include "VideoReceiver.h"
 
+#include <QtCore/QDateTime>
 #include <QtCore/QTimer>
-#include <QtCore/QUrlQuery>
+#include <QtCore/QUrl>
 #include <QtQuick/QQuickItem>
 
 QGC_LOGGING_CATEGORY(CustomRtspReceiverLog, "qgc.customrtspreceiver")
+
+namespace {
+constexpr int kReconnectBaseDelayMs = 2000;
+constexpr int kReconnectMaxDelayMs = 30000;
+constexpr int kReconnectMaxShift = 4; // 2s, 4, 8, 16, 30(상한)
+/// 이만큼 재생이 유지됐다면 설정 문제가 아니라 일시 장애로 보고 지연을 초기화한다.
+constexpr qint64 kSessionStableMs = 30000;
+}
 
 CustomRtspReceiver::CustomRtspReceiver(QObject *parent)
     : QObject(parent)
@@ -57,6 +65,10 @@ void CustomRtspReceiver::_setStatus(int code, const QString &message)
     }
     // 같은 코드의 상세(초 카운트, 무효 NAL 수)가 바뀌어도 콘솔은 발생 시 한 줄만.
     const bool newlyOccurred = (code != 0 && code != _statusCode);
+    if (code == 0) {
+        // 진단 해제(세션 정상) 또는 사용자가 설정을 바꾼 경우다. 다음 실패는 즉시 재시도한다.
+        _reconnectAttempts = 0;
+    }
     _statusCode = code;
     _statusMessage = message;
     if (newlyOccurred) {
@@ -140,9 +152,24 @@ void CustomRtspReceiver::_scheduleReconnect()
     if (!_streamEnabled || _channelUrl.trimmed().isEmpty() || !_videoOutput) {
         return;
     }
+    // 오래 재생되다 끊긴 것과 열자마자 계속 실패하는 것은 다르다. 후자만 지연을 늘려
+    // Console 이 같은 줄로 도배되는 것을 막는다.
+    if (_sessionStartMs > 0
+        && (QDateTime::currentMSecsSinceEpoch() - _sessionStartMs) > kSessionStableMs) {
+        _reconnectAttempts = 0;
+    }
+    _sessionStartMs = 0;
+
+    const int delayMs = qMin(kReconnectMaxDelayMs,
+                             kReconnectBaseDelayMs << qMin(_reconnectAttempts, kReconnectMaxShift));
+    ++_reconnectAttempts;
+
     const quint64 token = _applyToken;
-    qCDebug(CustomRtspReceiverLog) << "Scheduling reconnect in 2s token" << token;
-    QTimer::singleShot(2000, this, [this, token]() {
+    // 재시도 사실이 Console 에 남지 않으면 앞뒤 메시지가 별개 장애처럼 보인다.
+    QGCLogging::instance()->log(tr("영상 재연결 %1회째 시도 (%2초 후)")
+                                   .arg(_reconnectAttempts)
+                                   .arg(delayMs / 1000));
+    QTimer::singleShot(delayMs, this, [this, token]() {
         if (!_isApplyCurrent(token)) {
             return;
         }
@@ -174,22 +201,21 @@ void CustomRtspReceiver::_applySourceAndPlay()
     _stopPlayback();
 
     if (_cryptoEnabled) {
+        // 전송(udp/tcp)과 프레이밍(payload/rtsp) 판단은 EncryptedRtspClient 가 한다.
+        // 전송은 SETUP 응답이, 프레이밍은 video_endpoints.ini [crypto] framing 이 결정한다.
         const QUrl remoteUrl(url);
-        const QString rtpTransport =
-            QUrlQuery(remoteUrl).queryItemValue(QStringLiteral("rtsp_transport")).trimmed().toLower();
-        if (rtpTransport != QLatin1String("tcp")) {
-            _setStatus(static_cast<int>(EncryptedRtspClient::Diagnosis::StartFailed),
-                       tr("암호 영상 시작 실패\nRTP 인터리브가 필요합니다 (rtsp_transport=tcp)"));
-            return;
-        }
 
         _cryptoClient = new EncryptedRtspClient(this);
         connect(_cryptoClient, &EncryptedRtspClient::sessionEnded, this, [this](const QString &message) {
+            // CryptoLinkMonitor 는 MAVLink 암호 링크(EncryptedTcpPipe)의 연결 상태 이력이다.
+            // 영상 이벤트를 넣으면 연결 상태 팝업이 링크 장애로 오인시킨다.
+            // Console 기록은 _setStatus 가 담당한다.
             _setStatus(static_cast<int>(EncryptedRtspClient::Diagnosis::SessionEnded),
                        tr("영상 세션 종료\n%1").arg(message));
-            CryptoLinkMonitor::instance()->reportEvent(
-                CryptoLinkMonitor::Error, QStringLiteral("Video"), message);
             _stop();
+            // 평문 경로(onStopComplete)와 동일하게 재연결한다. _stop() 이 토큰을 올린 뒤라
+            // 이전 세션의 예약은 무효화되고 새 토큰으로만 재시도된다.
+            _scheduleReconnect();
         });
         connect(_cryptoClient, &EncryptedRtspClient::fatalError, this, [this](const QString &message) {
             _setStatus(static_cast<int>(EncryptedRtspClient::Diagnosis::StartFailed),
@@ -200,6 +226,10 @@ void CustomRtspReceiver::_applySourceAndPlay()
         // 진단 메시지는 재연결을 넘어 유지하고, 다음 세션이 정상을 확인하면 0으로 해제된다.
         connect(_cryptoClient, &EncryptedRtspClient::diagnosisChanged, this,
                 [this](int code, const QString &message) { _setStatus(code, message); });
+        // 원인 로그는 오버레이 등급/중복 규칙을 타지 않고 Console 에 그대로 쌓인다.
+        connect(_cryptoClient, &EncryptedRtspClient::causeLogged, this, [](const QString &line) {
+            QGCLogging::instance()->log(line);
+        });
 
         const auto speedMode = _cryptoMode == QLatin1String("high")
                                    ? TngVideoCryptoService::SpeedMode::High
@@ -216,6 +246,7 @@ void CustomRtspReceiver::_applySourceAndPlay()
         }
 
         _activeSourceKey = sourceKey;
+        _sessionStartMs = QDateTime::currentMSecsSinceEpoch();
         qCDebug(CustomRtspReceiverLog) << "Started encrypted in-process client" << url;
         return;
     }
@@ -284,6 +315,7 @@ void CustomRtspReceiver::_applySourceAndPlay()
 
     _receiver = receiver;
     _activeSourceKey = sourceKey;
+    _sessionStartMs = QDateTime::currentMSecsSinceEpoch();
     receiver->start(5);
     qCDebug(CustomRtspReceiverLog) << "Started plaintext rtspsrc" << url;
 #else

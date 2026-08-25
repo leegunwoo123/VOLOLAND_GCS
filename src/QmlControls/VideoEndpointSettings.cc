@@ -129,6 +129,7 @@ void VideoEndpointSettings::ensureCryptoSection(const QString &path)
                  QStringLiteral("50121114F32EAA789608D779C331802E"));
     setIfMissing(QStringLiteral("crypto/fail_on_error"), QStringLiteral("true"));
     setIfMissing(QStringLiteral("crypto/max_payload_bytes"), 2048);
+    setIfMissing(QStringLiteral("crypto/framing"), QStringLiteral("payload"));
     s.sync();
 }
 
@@ -162,7 +163,10 @@ bool VideoEndpointSettings::_writeDefaultTemplate(const QString &path)
         "key_hex = 7D1B7A0110019712056CF18DCDF79E02118A26A8B6204444F68E246F8E1967A0\n"
         "iv_hex = 50121114F32EAA789608D779C331802E\n"
         "fail_on_error = true\n"
-        "max_payload_bytes = 2048\n";
+        "max_payload_bytes = 2048\n"
+        "; framing: payload(RTP 페이로드만 암호, 제어 채널 평문)\n"
+        ";        | rtsp(핸드셰이크부터 모든 PDU 가 [u32 BE 길이][암호문])\n"
+        "framing = payload\n";
 
     file.write(kTemplate);
     file.close();

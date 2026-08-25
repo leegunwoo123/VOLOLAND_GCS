@@ -73,5 +73,5 @@ private:
     EncryptedMavlinkConfiguration *_cfg = nullptr;
     EncryptedTcpPipe _pipe;
     bool _connected = false;
-    bool _secure = true; // crypto/enabled 반영 (평문 모드면 false)
+    bool _secure = true; // crypto/enabled 반영
 };

@@ -79,8 +79,10 @@ Rectangle {
             selectionToken: "multiview-" + cellIndex
             channelUrl: (_src && _src.url) ? _src.url : ""
             streamEnabled: cell.connected      // 연결된 셀만 재생
-            // 암호 경로는 TCP interleaved 필수. 평문은 udp 기본.
-            rtpTransport: multiViewRoot._cryptoEnabled ? "tcp" : "udp"
+            // 전송은 video_endpoints.ini. 멀티뷰 전용 키가 없어 drone 값을 따른다.
+            rtpTransport: (typeof QGroundControl !== "undefined" && QGroundControl.videoEndpointSettings)
+                ? QGroundControl.videoEndpointSettings.droneRtpTransport
+                : "udp"
             cryptoEnabled: multiViewRoot._cryptoEnabled
             cryptoMode: multiViewRoot._cryptoMode
             useVideoManager: false

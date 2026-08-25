@@ -324,7 +324,7 @@ void EncryptedTcpPipe::sendPlain(const QByteArray &plain)
     }
 
     if (!_config.enabled) {
-        _tcp.sendData(plain); // 평문 통과
+        _tcp.sendData(plain);
         return;
     }
 

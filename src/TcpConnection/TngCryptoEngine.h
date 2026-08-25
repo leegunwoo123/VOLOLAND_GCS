@@ -31,7 +31,6 @@ public:
     void close();
 
     /// [독립 실행] 키스토어에 새 키를 생성·저장한다(연결과 무관한 1회성 작업).
-    /// 흐름: 코어 취득 → tngSetDeviceInfo → tngGenerateRandomNumber(alg 길이) → tngSaveKey → 코어 반납.
     bool generateAndSaveKey(const TngCryptoConfig &config, int *outIndex, QString *error = nullptr);
 
     /// [독립 실행] 키스토어에 저장된 키 목록(tngGetSavedKeyList)과 최신 인덱스(tngReadLatestKey)를 조회한다.
@@ -50,7 +49,6 @@ public:
 
     /// TCP 연결 시: fixed IV 모드면 TX/RX 세션 Open
     bool openSessions(QString *error = nullptr);
-    /// TCP 끊김/stop 시: 세션 Close
     void closeSessions();
 
     /// 송신: Enc → [u32 BE len][IV][cipher] 반환
